@@ -1,0 +1,507 @@
+@extends('layouts.site')
+
+@section('title', 'Pricing — Loop')
+
+@section('content')
+
+<!-- Pricing header -->
+<section class="pricing-header">
+    <div class="container">
+        <div class="eyebrow">Pricing</div>
+        <h1>Plans that grow with your support team</h1>
+        <p>Start free, upgrade when you need more seats or automation. No setup fees, cancel anytime.</p>
+
+        <div class="billing-toggle">
+            <button class="active" type="button">Monthly</button>
+            <button type="button">Yearly <span class="save-tag">Save 20%</span></button>
+        </div>
+    </div>
+</section>
+
+<!-- Pricing cards -->
+<section class="pricing-cards">
+    <div class="container">
+        <div class="row g-4 justify-content-center">
+
+            <div class="col-lg-4 col-md-6">
+                <div class="price-card">
+                    <h3>Starter</h3>
+                    <p class="price-desc">For small teams getting their first shared inbox.</p>
+                    <div class="price-amount">$0</div>
+                    <div class="price-period">Free forever, 1 seat</div>
+                    <ul>
+                        <li><i class="bi bi-check-lg"></i> Shared inbox (chat + email)</li>
+                        <li><i class="bi bi-check-lg"></i> 100 conversations / month</li>
+                        <li><i class="bi bi-check-lg"></i> Basic visitor insight</li>
+                        <li><i class="bi bi-check-lg"></i> Community support</li>
+                    </ul>
+                    <a href="{{ route('register') }}" class="btn btn-outline-ink w-100 text-center">Start for free</a>
+                </div>
+            </div>
+
+            <div class="col-lg-4 col-md-6">
+                <div class="price-card price-card--featured">
+                    <span class="featured-tag">Most popular</span>
+                    <h3>Growth</h3>
+                    <p class="price-desc">For teams that need automation and routing.</p>
+                    <div class="price-amount"><sup>$</sup>39</div>
+                    <div class="price-period">per seat / month</div>
+                    <ul>
+                        <li><i class="bi bi-check-lg"></i> Everything in Starter</li>
+                        <li><i class="bi bi-check-lg"></i> Unlimited conversations</li>
+                        <li><i class="bi bi-check-lg"></i> Answer bot automation</li>
+                        <li><i class="bi bi-check-lg"></i> Team routing rules</li>
+                        <li><i class="bi bi-check-lg"></i> Priority support</li>
+                    </ul>
+                    <a href="{{ route('register') }}" class="btn btn-cobalt w-100 text-center">Start free trial</a>
+                </div>
+            </div>
+
+            <div class="col-lg-4 col-md-6">
+                <div class="price-card">
+                    <h3>Scale</h3>
+                    <p class="price-desc">For larger teams with custom needs.</p>
+                    <div class="price-amount"><sup>$</sup>89</div>
+                    <div class="price-period">per seat / month</div>
+                    <ul>
+                        <li><i class="bi bi-check-lg"></i> Everything in Growth</li>
+                        <li><i class="bi bi-check-lg"></i> Advanced permissions & roles</li>
+                        <li><i class="bi bi-check-lg"></i> Custom integrations & API</li>
+                        <li><i class="bi bi-check-lg"></i> Dedicated account manager</li>
+                    </ul>
+                    <a href="contact.html" class="btn btn-outline-ink w-100 text-center">Talk to sales</a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Comparison table -->
+<section class="compare-section">
+    <div class="container">
+        <h2>Compare plans in detail</h2>
+        <div class="table-responsive">
+            <table class="table compare-table">
+                <thead>
+                    <tr>
+                        <th style="width:40%">Feature</th>
+                        <th>Starter</th>
+                        <th>Growth</th>
+                        <th>Scale</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Conversations / month</td>
+                        <td>100</td>
+                        <td>Unlimited</td>
+                        <td>Unlimited</td>
+                    </tr>
+                    <tr>
+                        <td>Answer bot automation</td>
+                        <td><i class="bi bi-dash"></i></td>
+                        <td><i class="bi bi-check-lg"></i></td>
+                        <td><i class="bi bi-check-lg"></i></td>
+                    </tr>
+                    <tr>
+                        <td>Team routing rules</td>
+                        <td><i class="bi bi-dash"></i></td>
+                        <td><i class="bi bi-check-lg"></i></td>
+                        <td><i class="bi bi-check-lg"></i></td>
+                    </tr>
+                    <tr>
+                        <td>Custom integrations & API</td>
+                        <td><i class="bi bi-dash"></i></td>
+                        <td><i class="bi bi-dash"></i></td>
+                        <td><i class="bi bi-check-lg"></i></td>
+                    </tr>
+                    <tr>
+                        <td>Support</td>
+                        <td>Community</td>
+                        <td>Priority</td>
+                        <td>Dedicated manager</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq-section">
+    <div class="container">
+        <h2>Common questions</h2>
+        <div class="accordion" id="pricingFaq">
+            <div class="accordion-item">
+                <h3 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                        Can I switch plans later?
+                    </button>
+                </h3>
+                <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#pricingFaq">
+                    <div class="accordion-body">Yes, upgrade or downgrade anytime from your account settings. Changes apply on your next billing cycle.</div>
+                </div>
+            </div>
+            <div class="accordion-item">
+                <h3 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                        What happens if I go over my conversation limit?
+                    </button>
+                </h3>
+                <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#pricingFaq">
+                    <div class="accordion-body">On Starter, new conversations pause until the next month or you upgrade. Growth and Scale have no limit.</div>
+                </div>
+            </div>
+            <div class="accordion-item">
+                <h3 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                        Is there a discount for yearly billing?
+                    </button>
+                </h3>
+                <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#pricingFaq">
+                    <div class="accordion-body">Yes, yearly billing saves 20% compared to paying monthly on Growth and Scale plans.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Final CTA -->
+<section class="final-cta">
+    <div class="container">
+        <h2>Ready to reply faster?</h2>
+        <a href="{{ route('register') }}" class="btn btn-cobalt">Start free trial</a>
+    </div>
+</section>
+
+@endsection
+
+@push('styles')
+<style>
+    :root {
+        --ink: #14213D;
+        --ink-soft: #4A5578;
+        --paper: #FBF9F4;
+        --cobalt: #2B5FE2;
+        --cobalt-dark: #1E46B3;
+        --citrus: #FFC93C;
+        --mist: #E7ECF5;
+        --ok-green: #1FAA59;
+        --line: #DCE2EF;
+
+        --font-display: 'Fraunces', Georgia, serif;
+        --font-body: 'Inter', system-ui, sans-serif;
+    }
+
+    body {
+        background: var(--paper);
+        color: var(--ink);
+        font-family: var(--font-body);
+    }
+
+    /* Nav */
+    .site-nav {
+        padding: 1.25rem 0;
+        border-bottom: 1px solid var(--line);
+    }
+    .site-nav .brand {
+        font-family: var(--font-display);
+        font-weight: 600;
+        font-size: 1.3rem;
+        color: var(--ink);
+        text-decoration: none;
+    }
+    .site-nav a.nav-link {
+        color: var(--ink-soft);
+        font-weight: 500;
+        font-size: 0.95rem;
+    }
+    .site-nav a.nav-link:hover { color: var(--ink); }
+
+    .btn-cobalt {
+        background: var(--cobalt);
+        color: #fff;
+        font-weight: 600;
+        padding: 0.7rem 1.5rem;
+        border-radius: 8px;
+        border: none;
+    }
+    .btn-cobalt:hover { background: var(--cobalt-dark); color: #fff; }
+
+    .btn-outline-ink {
+        background: transparent;
+        color: var(--ink);
+        font-weight: 600;
+        padding: 0.7rem 1.5rem;
+        border-radius: 8px;
+        border: 1.5px solid var(--line);
+    }
+    .btn-outline-ink:hover { border-color: var(--ink); }
+
+    /* Pricing header */
+    .pricing-header {
+        padding: 5rem 0 3rem;
+        text-align: center;
+    }
+    .pricing-header .eyebrow {
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: var(--cobalt);
+        margin-bottom: 1rem;
+    }
+    .pricing-header h1 {
+        font-family: var(--font-display);
+        font-weight: 500;
+        font-size: clamp(2.2rem, 4vw, 3rem);
+        max-width: 16ch;
+        margin: 0 auto 1.25rem;
+        color: var(--ink);
+    }
+    .pricing-header p {
+        color: var(--ink-soft);
+        font-size: 1.1rem;
+        max-width: 46ch;
+        margin: 0 auto;
+    }
+
+    /* Billing toggle */
+    .billing-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.75rem;
+        background: var(--mist);
+        border-radius: 999px;
+        padding: 0.35rem;
+        margin-top: 2rem;
+    }
+    .billing-toggle button {
+        border: none;
+        background: transparent;
+        padding: 0.5rem 1.1rem;
+        border-radius: 999px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: var(--ink-soft);
+    }
+    .billing-toggle button.active {
+        background: #fff;
+        color: var(--ink);
+        box-shadow: 0 2px 6px rgba(20,33,61,0.08);
+    }
+    .save-tag {
+        font-size: 0.75rem;
+        color: var(--ok-green);
+        font-weight: 600;
+        margin-left: 0.35rem;
+    }
+
+    /* Pricing cards */
+    .pricing-cards { padding: 2rem 0 5rem; }
+    .price-card {
+        background: #fff;
+        border: 1.5px solid var(--line);
+        border-radius: 14px;
+        padding: 2.25rem 2rem;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    .price-card--featured {
+        border-color: var(--cobalt);
+        box-shadow: 0 20px 40px -24px rgba(43, 95, 226, 0.35);
+        position: relative;
+    }
+    .price-card--featured .featured-tag {
+        position: absolute;
+        top: -0.9rem;
+        left: 2rem;
+        background: var(--cobalt);
+        color: #fff;
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 0.3rem 0.75rem;
+        border-radius: 999px;
+    }
+    .price-card h3 {
+        font-family: var(--font-body);
+        font-weight: 600;
+        font-size: 1.1rem;
+        margin-bottom: 0.4rem;
+    }
+    .price-card .price-desc {
+        color: var(--ink-soft);
+        font-size: 0.9rem;
+        margin-bottom: 1.5rem;
+    }
+    .price-card .price-amount {
+        font-family: var(--font-display);
+        font-size: 2.6rem;
+        color: var(--ink);
+        line-height: 1;
+    }
+    .price-card .price-amount sup {
+        font-size: 1.1rem;
+        font-family: var(--font-body);
+        top: -1.2rem;
+    }
+    .price-card .price-period {
+        color: var(--ink-soft);
+        font-size: 0.9rem;
+        margin-bottom: 1.75rem;
+    }
+    .price-card ul {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 2rem;
+        flex-grow: 1;
+    }
+    .price-card ul li {
+        display: flex;
+        gap: 0.6rem;
+        padding: 0.55rem 0;
+        font-size: 0.92rem;
+        color: var(--ink);
+        border-top: 1px solid var(--line);
+    }
+    .price-card ul li:first-child { border-top: none; }
+    .price-card ul li .bi { color: var(--ok-green); flex-shrink: 0; }
+
+    /* Comparison table */
+    .compare-section { padding: 3rem 0 5rem; }
+    .compare-section h2 {
+        font-family: var(--font-display);
+        font-weight: 500;
+        font-size: 1.9rem;
+        margin-bottom: 2rem;
+    }
+    .compare-table th, .compare-table td {
+        padding: 0.9rem 1rem;
+        border-top: 1px solid var(--line);
+        vertical-align: middle;
+    }
+    .compare-table thead th {
+        font-family: var(--font-body);
+        font-weight: 600;
+        border-top: none;
+        color: var(--ink);
+    }
+    .compare-table td:first-child, .compare-table th:first-child {
+        color: var(--ink-soft);
+    }
+    .compare-table .bi-check-lg { color: var(--ok-green); }
+    .compare-table .bi-dash { color: var(--ink-soft); opacity: 0.4; }
+
+    /* FAQ */
+    .faq-section { padding: 2rem 0 5rem; }
+    .faq-section h2 {
+        font-family: var(--font-display);
+        font-weight: 500;
+        font-size: 1.9rem;
+        margin-bottom: 2rem;
+    }
+    .accordion-button {
+        font-weight: 600;
+        color: var(--ink);
+        background: transparent;
+    }
+    .accordion-button:not(.collapsed) {
+        color: var(--cobalt);
+        background: transparent;
+        box-shadow: none;
+    }
+    .accordion-button:focus { box-shadow: none; border-color: var(--line); }
+    .accordion-item {
+        background: transparent;
+        border-left: none; border-right: none; border-color: var(--line);
+    }
+    .accordion-body { color: var(--ink-soft); }
+
+    /* Final CTA */
+    .final-cta { padding: 5rem 0 6rem; text-align: center; }
+    .final-cta h2 {
+        font-family: var(--font-display);
+        font-weight: 500;
+        font-size: clamp(1.8rem, 3.5vw, 2.4rem);
+        max-width: 20ch;
+        margin: 0 auto 1.75rem;
+    }
+
+    @media (max-width: 767.98px) {
+        .pricing-header { padding: 3rem 0 2rem; }
+        .price-card--featured { margin-top: 1rem; }
+    }
+</style>
+<style>
+/* ---- Modern polish: motion, depth, smoothness ---- */
+html { scroll-behavior: smooth; }
+
+.site-nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(251, 249, 244, 0.85);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transition: box-shadow 0.25s ease;
+}
+.site-nav.scrolled { box-shadow: 0 4px 20px -12px rgba(20,33,61,0.15); }
+
+.site-nav a.nav-link { position: relative; transition: color 0.2s ease; }
+.site-nav a.nav-link::after {
+    content: "";
+    position: absolute;
+    left: 0; bottom: -4px;
+    width: 0; height: 2px;
+    background: var(--cobalt);
+    transition: width 0.25s ease;
+}
+.site-nav a.nav-link:hover::after { width: 100%; }
+
+.btn-cobalt, .btn-outline-ink, .btn-social {
+    transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+}
+.btn-cobalt:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px -10px rgba(43, 95, 226, 0.45);
+}
+.btn-outline-ink:hover, .btn-social:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px -12px rgba(20,33,61,0.2);
+}
+.btn-cobalt:active, .btn-outline-ink:active { transform: translateY(0); }
+
+.price-card, .feature-visual, .value-card, .chat-mock,
+.auth-card, .contact-form-card, .logo-strip .wordmark {
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.price-card:hover, .value-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 24px 44px -24px rgba(20,33,61,0.28);
+}
+.price-card--featured:hover { transform: translateY(-8px); }
+.feature-visual:hover, .chat-mock:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 28px 50px -26px rgba(20,33,61,0.3);
+}
+.logo-strip .wordmark { display: inline-block; }
+.logo-strip .wordmark:hover { opacity: 0.9 !important; transform: translateY(-2px); }
+
+/* Scroll reveal */
+.reveal-el {
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity 0.7s cubic-bezier(.21,.6,.35,1), transform 0.7s cubic-bezier(.21,.6,.35,1);
+}
+.reveal-el.is-visible { opacity: 1; transform: translateY(0); }
+
+@media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .reveal-el { opacity: 1; transform: none; transition: none; }
+    .btn-cobalt:hover, .btn-outline-ink:hover, .btn-social:hover,
+    .price-card:hover, .value-card:hover, .feature-visual:hover, .chat-mock:hover {
+        transform: none;
+    }
+}
+</style>
+@endpush

@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loop vs shared email inboxes — Loop</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css">
+<style>
+    :root {
+        --ink: #14213D;
+        --ink-soft: #4A5578;
+        --paper: #FBF9F4;
+        --cobalt: #2B5FE2;
+        --cobalt-dark: #1E46B3;
+        --citrus: #FFC93C;
+        --mist: #E7ECF5;
+        --ok-green: #1FAA59;
+        --line: #DCE2EF;
+        --font-display: 'Fraunces', Georgia, serif;
+        --font-body: 'Inter', system-ui, sans-serif;
+    }
+    body { background: var(--paper); color: var(--ink); font-family: var(--font-body); }
+
+    .site-nav { padding: 1.25rem 0; border-bottom: 1px solid var(--line); }
+    .site-nav .brand { font-family: var(--font-display); font-weight: 600; font-size: 1.3rem; color: var(--ink); text-decoration: none; }
+    .site-nav a.nav-link { color: var(--ink-soft); font-weight: 500; font-size: 0.95rem; }
+    .site-nav a.nav-link:hover { color: var(--ink); }
+    .btn-cobalt { background: var(--cobalt); color: #fff; font-weight: 600; padding: 0.7rem 1.5rem; border-radius: 8px; border: none; }
+    .btn-cobalt:hover { background: var(--cobalt-dark); color: #fff; }
+    .btn-outline-ink { background: transparent; color: var(--ink); font-weight: 600; padding: 0.7rem 1.5rem; border-radius: 8px; border: 1.5px solid var(--line); }
+    .btn-outline-ink:hover { border-color: var(--ink); }
+
+    /* Header */
+    .about-header { padding: 5rem 0 3rem; text-align: center; }
+    .about-header .eyebrow { font-weight: 600; font-size: 0.95rem; color: var(--cobalt); margin-bottom: 1rem; }
+    .about-header h1 {
+        font-family: var(--font-display); font-weight: 500;
+        font-size: clamp(2.2rem, 4vw, 3rem); max-width: 20ch; margin: 0 auto 1.25rem;
+    }
+    .about-header p { color: var(--ink-soft); font-size: 1.1rem; max-width: 50ch; margin: 0 auto; }
+
+    /* Mission */
+    .mission-section { padding: 3rem 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .mission-section p.big {
+        font-family: var(--font-display);
+        font-weight: 500;
+        font-size: clamp(1.4rem, 2.6vw, 1.9rem);
+        line-height: 1.5;
+        max-width: 32ch;
+        color: var(--ink);
+        margin: 0 auto;
+        text-align: center;
+    }
+
+    /* Stats */
+    .about-stats { padding: 4rem 0; }
+    .about-stats .stat-num {
+        font-family: var(--font-display); font-size: 2.6rem; color: var(--cobalt);
+    }
+    .about-stats .stat-label { color: var(--ink-soft); font-size: 0.95rem; }
+
+    /* Values */
+    .values-section { padding: 2rem 0 4.5rem; }
+    .values-section h2 {
+        font-family: var(--font-display); font-weight: 500;
+        font-size: clamp(1.8rem, 3vw, 2.3rem); margin-bottom: 2rem; text-align: center;
+    }
+    .value-card {
+        background: #fff; border: 1px solid var(--line); border-radius: 14px;
+        padding: 2rem; height: 100%;
+    }
+    .value-card .icon {
+        width: 46px; height: 46px; background: var(--mist); border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        color: var(--cobalt); font-size: 1.3rem; margin-bottom: 1.2rem;
+    }
+    .value-card h3 { font-weight: 600; font-size: 1.05rem; margin-bottom: 0.5rem; }
+    .value-card p { color: var(--ink-soft); font-size: 0.92rem; margin: 0; }
+
+    /* Team */
+    .team-section { padding: 2rem 0 5rem; text-align: center; }
+    .team-section h2 {
+        font-family: var(--font-display); font-weight: 500;
+        font-size: clamp(1.8rem, 3vw, 2.3rem); margin-bottom: 1rem;
+    }
+    .team-section p.sub { color: var(--ink-soft); max-width: 44ch; margin: 0 auto 2.5rem; }
+    .team-avatar {
+        width: 64px; height: 64px; border-radius: 50%;
+        background: var(--mist); color: var(--cobalt);
+        display: flex; align-items: center; justify-content: center;
+        font-family: var(--font-display); font-size: 1.3rem; margin: 0 auto 0.75rem;
+    }
+    .team-member h4 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.1rem; }
+    .team-member p { color: var(--ink-soft); font-size: 0.85rem; }
+
+    /* Final CTA */
+    .final-cta { padding: 5rem 0 6rem; text-align: center; }
+    .final-cta h2 {
+        font-family: var(--font-display); font-weight: 500;
+        font-size: clamp(1.8rem, 3.5vw, 2.4rem); max-width: 20ch; margin: 0 auto 1.75rem;
+    }
+
+    @media (max-width: 767.98px) {
+        .about-header { padding: 3rem 0 2rem; }
+    }
+</style>
+<style>
+/* ---- Modern polish: motion, depth, smoothness ---- */
+html { scroll-behavior: smooth; }
+
+.site-nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(251, 249, 244, 0.85);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transition: box-shadow 0.25s ease;
+}
+.site-nav.scrolled { box-shadow: 0 4px 20px -12px rgba(20,33,61,0.15); }
+
+.site-nav a.nav-link { position: relative; transition: color 0.2s ease; }
+.site-nav a.nav-link::after {
+    content: "";
+    position: absolute;
+    left: 0; bottom: -4px;
+    width: 0; height: 2px;
+    background: var(--cobalt);
+    transition: width 0.25s ease;
+}
+.site-nav a.nav-link:hover::after { width: 100%; }
+
+.btn-cobalt, .btn-outline-ink, .btn-social {
+    transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+}
+.btn-cobalt:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px -10px rgba(43, 95, 226, 0.45);
+}
+.btn-outline-ink:hover, .btn-social:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px -12px rgba(20,33,61,0.2);
+}
+.btn-cobalt:active, .btn-outline-ink:active { transform: translateY(0); }
+
+.price-card, .feature-visual, .value-card, .chat-mock,
+.auth-card, .contact-form-card, .logo-strip .wordmark {
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.price-card:hover, .value-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 24px 44px -24px rgba(20,33,61,0.28);
+}
+.price-card--featured:hover { transform: translateY(-8px); }
+.feature-visual:hover, .chat-mock:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 28px 50px -26px rgba(20,33,61,0.3);
+}
+.logo-strip .wordmark { display: inline-block; }
+.logo-strip .wordmark:hover { opacity: 0.9 !important; transform: translateY(-2px); }
+
+/* Scroll reveal */
+.reveal-el {
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity 0.7s cubic-bezier(.21,.6,.35,1), transform 0.7s cubic-bezier(.21,.6,.35,1);
+}
+.reveal-el.is-visible { opacity: 1; transform: translateY(0); }
+
+@media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .reveal-el { opacity: 1; transform: none; transition: none; }
+    .btn-cobalt:hover, .btn-outline-ink:hover, .btn-social:hover,
+    .price-card:hover, .value-card:hover, .feature-visual:hover, .chat-mock:hover {
+        transform: none;
+    }
+}
+</style>
+
+<style>
+.tile-grid{display:grid;gap:1.25rem;grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+.tile{background:#fff;border:1px solid var(--line);border-radius:14px;padding:1.5rem;text-decoration:none;color:var(--ink);display:block;transition:transform .2s,box-shadow .2s}
+.tile:hover{transform:translateY(-3px);box-shadow:0 10px 24px rgba(20,33,61,.08);color:var(--ink)}
+.tile .ico{width:44px;height:44px;border-radius:10px;background:var(--mist);color:var(--cobalt);display:grid;place-items:center;font-size:1.3rem;margin-bottom:1rem}
+.tile h3{font-size:1.05rem;font-weight:600;margin-bottom:.4rem}.tile p{color:var(--ink-soft);font-size:.93rem;margin:0}
+.tag{display:inline-block;font-size:.75rem;font-weight:600;color:var(--cobalt);background:var(--mist);border-radius:999px;padding:.2rem .65rem;margin-bottom:.75rem}
+.chips{display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center;margin-top:1.75rem}
+.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:.4rem 1rem;font-size:.88rem;font-weight:600;color:var(--ink-soft)}.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.row-item{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1.15rem 0;border-bottom:1px solid var(--line);flex-wrap:wrap;text-decoration:none;color:var(--ink)}
+.row-item:hover h3{color:var(--cobalt)}.row-item h3{font-size:1.05rem;font-weight:600;margin:0 0 .2rem}.row-item small{color:var(--ink-soft)}
+.search-box{max-width:520px;margin:2rem auto 0;position:relative}.search-box i{position:absolute;left:1rem;top:50%;transform:translateY(-50%);color:var(--ink-soft)}
+.search-box input{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:.85rem 1rem .85rem 2.6rem;font-size:1rem;background:#fff}.search-box input:focus{outline:none;border-color:var(--cobalt)}
+.post-thumb{height:150px;border-radius:10px;background:linear-gradient(135deg,var(--mist),#fff 60%,#FFF1C7);margin-bottom:1.1rem;display:grid;place-items:center;color:var(--cobalt);font-size:2rem}
+.metric{font-family:var(--font-display);font-size:3rem;font-weight:500;color:var(--cobalt);line-height:1}
+.quote{color:var(--ink-soft);font-size:.98rem;margin:1rem 0}.who{font-weight:600;font-size:.9rem}
+.sec{padding:1rem 0 4rem}
+</style>
+<link rel="stylesheet" href="assets/glass-dark.css">
+</head>
+<body>
+<div class="sci-bg" aria-hidden="true"></div>
+
+<!-- Nav -->
+<nav class="site-nav">
+    <div class="container d-flex align-items-center justify-content-between">
+        <a href="home.html" class="brand">Loop</a>
+        <div class="d-none d-md-flex align-items-center gap-4">
+            <div class="dropdown"><a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Product</a><div class="dropdown-menu"><a class="dropdown-item" href="live-chat.html"><span class="di"><i class="bi bi-chat-left-text"></i></span><span class="dt"><b>Live Chat</b><small>Talk to visitors in real time</small></span></a><a class="dropdown-item" href="ai-agent.html"><span class="di"><i class="bi bi-stars"></i></span><span class="dt"><b>AI Agent</b><small>Answers and sells from your data</small></span></a><a class="dropdown-item" href="help-desk.html"><span class="di"><i class="bi bi-headset"></i></span><span class="dt"><b>Help Desk</b><small>One inbox for every channel</small></span></a><a class="dropdown-item" href="flows.html"><span class="di"><i class="bi bi-bezier2"></i></span><span class="dt"><b>Flows</b><small>Automations that convert</small></span></a><a class="dropdown-item" href="integrations.html"><span class="di"><i class="bi bi-puzzle"></i></span><span class="dt"><b>Integrations</b><small>Connect your existing stack</small></span></a><a class="dropdown-item" href="features.html"><span class="di"><i class="bi bi-grid-1x2"></i></span><span class="dt"><b>All features</b><small>Everything in one platform</small></span></a><a class="dropdown-item" href="premium.html"><span class="di"><i class="bi bi-award"></i></span><span class="dt"><b>Premium plan</b><small>Done-for-you optimization</small></span></a></div></div><div class="dropdown"><a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Solutions</a><div class="dropdown-menu mega"><div class="mega-cols"><div><h6 class="dropdown-header">Teams</h6><a class="dropdown-item" href="solution-customer-service.html"><span class="di"><i class="bi bi-person-workspace"></i></span><span class="dt"><b>Customer Service</b><small>Resolve faster, with context</small></span></a><a class="dropdown-item" href="solution-marketing-sales.html"><span class="di"><i class="bi bi-bullseye"></i></span><span class="dt"><b>Marketing & Sales</b><small>Turn visitors into pipeline</small></span></a></div><div><h6 class="dropdown-header">Industries</h6><a class="dropdown-item" href="industry-ecommerce.html"><span class="di"><i class="bi bi-bag-check"></i></span><span class="dt"><b>Ecommerce</b><small>Recover carts, recommend</small></span></a><a class="dropdown-item" href="industry-services.html"><span class="di"><i class="bi bi-briefcase"></i></span><span class="dt"><b>Services</b><small>Qualify and book clients</small></span></a><a class="dropdown-item" href="industry-education.html"><span class="di"><i class="bi bi-mortarboard"></i></span><span class="dt"><b>Education</b><small>Support students 24/7</small></span></a><a class="dropdown-item" href="industry-finance.html"><span class="di"><i class="bi bi-bank2"></i></span><span class="dt"><b>Finance</b><small>Guardrails and audit logs</small></span></a><a class="dropdown-item" href="industry-saas.html"><span class="di"><i class="bi bi-window-stack"></i></span><span class="dt"><b>SaaS</b><small>Onboard and convert trials</small></span></a><a class="dropdown-item" href="industry-travel.html"><span class="di"><i class="bi bi-globe-europe-africa"></i></span><span class="dt"><b>Travel</b><small>Help travelers anywhere</small></span></a></div></div></div></div>
+            <a href="pricing.html" class="nav-link">Pricing</a>
+            <div class="dropdown"><a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Resources</a><div class="dropdown-menu mega"><div class="mega-cols"><div><a class="dropdown-item" href="customer-stories.html"><span class="di"><i class="bi bi-award"></i></span><span class="dt"><b>Customer Stories</b><small>Results from real teams</small></span></a><a class="dropdown-item" href="ebooks.html"><span class="di"><i class="bi bi-journal-bookmark"></i></span><span class="dt"><b>Ebooks</b><small>Guides to put to work</small></span></a><a class="dropdown-item" href="compare.html"><span class="di"><i class="bi bi-columns-gap"></i></span><span class="dt"><b>Compare</b><small>How Loop stacks up</small></span></a><a class="dropdown-item" href="help-center.html"><span class="di"><i class="bi bi-question-circle"></i></span><span class="dt"><b>Help Center</b><small>Step-by-step answers</small></span></a><a class="dropdown-item" href="blog.html"><span class="di"><i class="bi bi-pencil-square"></i></span><span class="dt"><b>Blog</b><small>Playbooks and news</small></span></a></div><div><a class="dropdown-item" href="partners.html"><span class="di"><i class="bi bi-people"></i></span><span class="dt"><b>Partner Program</b><small>Grow with Loop</small></span></a><a class="dropdown-item" href="roi-calculator.html"><span class="di"><i class="bi bi-calculator"></i></span><span class="dt"><b>ROI Calculator</b><small>Estimate your savings</small></span></a><a class="dropdown-item" href="watch-demo.html"><span class="di"><i class="bi bi-play-btn"></i></span><span class="dt"><b>Watch Demo</b><small>A short product tour</small></span></a><a class="dropdown-item" href="ai-playground.html"><span class="di"><i class="bi bi-stars"></i></span><span class="dt"><b>AI Playground</b><small>Try the agent yourself</small></span></a><a class="dropdown-item" href="resources.html"><span class="di"><i class="bi bi-collection"></i></span><span class="dt"><b>All resources</b><small>Browse everything</small></span></a></div></div></div></div>
+            <a href="contact.html" class="nav-link">Contact</a>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+            <div class="dropdown d-md-none"><a class="btn btn-outline-ink" href="#" data-bs-toggle="dropdown" aria-label="Menu"><i class="bi bi-list"></i></a><ul class="dropdown-menu dropdown-menu-end"><li><a class="dropdown-item" href="features.html"><span class="di"><i class="bi bi-grid-1x2"></i></span><span class="dt"><b>Product</b></span></a></li><li><a class="dropdown-item" href="solution-customer-service.html"><span class="di"><i class="bi bi-people"></i></span><span class="dt"><b>Solutions</b></span></a></li><li><a class="dropdown-item" href="pricing.html"><span class="di"><i class="bi bi-tag"></i></span><span class="dt"><b>Pricing</b></span></a></li><li><a class="dropdown-item" href="resources.html"><span class="di"><i class="bi bi-collection"></i></span><span class="dt"><b>Resources</b></span></a></li><li><a class="dropdown-item" href="contact.html"><span class="di"><i class="bi bi-envelope"></i></span><span class="dt"><b>Contact</b></span></a></li></ul></div>
+            <a href="login.html" class="btn btn-outline-ink d-none d-sm-inline-block">Log in</a>
+            <a href="register.html" class="btn btn-cobalt">Start free trial</a>
+        </div>
+    </div>
+</nav>
+<section class="about-header"><div class="container"><div class="crumbs"><a href="compare.html">Compare</a><i class="bi bi-chevron-right"></i>Loop vs shared email inboxes</div><div class="eyebrow">Compare</div><h1>Loop vs shared email inboxes</h1><p>A common support@ mailbox used by the whole team. Here is how the two approaches differ.</p><div class="hero-actions"><a href="register.html" class="btn btn-cobalt">Start free trial</a><a href="contact-sales.html" class="btn btn-outline-ink">Talk to sales</a></div></div></section><section class="sec"><div class="container"><h2 class="h2s">Which one fits you?</h2><div style="height:1rem"></div><div class="row g-4"><div class="col-md-6"><div class="glass h-100"><h3 style="font-family:var(--font-display);font-size:1.3rem">Shared email inboxes may be enough if…</h3><p style="color:var(--ink-soft)">Your volume is low and email is your only channel.</p></div></div><div class="col-md-6"><div class="glass h-100" style="border-color:rgba(77,124,255,.6)"><h3 style="font-family:var(--font-display);font-size:1.3rem">Loop is a better fit if…</h3><p style="color:var(--ink-soft)">You want live answers, AI, assignments and reporting as you grow.</p></div></div></div></div></section><section class="sec"><div class="container"><h2 class="h2s">Feature comparison</h2><p class="sub2">A generic comparison of product categories, not any specific vendor. Capabilities vary by product.</p><div class="table-responsive glass" style="padding:0"><table class="table"><thead><tr><th></th><th>Loop</th><th>Shared email inboxes</th></tr></thead><tbody><tr><td>AI agent grounded in your data</td><td><i class="bi bi-check-circle-fill" style="color:#4ade80"></i> Included</td><td><i class="bi bi-x-circle-fill" style="color:#ef4444;opacity:.8"></i> No</td></tr><tr><td>Live chat with visitors</td><td><i class="bi bi-check-circle-fill" style="color:#4ade80"></i> Yes</td><td><i class="bi bi-x-circle-fill" style="color:#ef4444;opacity:.8"></i> No</td></tr><tr><td>Shared multichannel inbox</td><td><i class="bi bi-check-circle-fill" style="color:#4ade80"></i> All channels</td><td><i class="bi bi-dash-circle-fill" style="color:#f59e0b"></i> Email only</td></tr><tr><td>Ticketing and SLAs</td><td><i class="bi bi-check-circle-fill" style="color:#4ade80"></i> Yes</td><td><i class="bi bi-dash-circle-fill" style="color:#f59e0b"></i> Manual</td></tr><tr><td>Visual automations</td><td><i class="bi bi-check-circle-fill" style="color:#4ade80"></i> Visual builder</td><td><i class="bi bi-x-circle-fill" style="color:#ef4444;opacity:.8"></i> No</td></tr><tr><td>Revenue attribution</td><td><i class="bi bi-check-circle-fill" style="color:#4ade80"></i> Built in</td><td><i class="bi bi-x-circle-fill" style="color:#ef4444;opacity:.8"></i> No</td></tr><tr><td>Typical setup time</td><td>Minutes</td><td>Minutes</td></tr><tr><td>Free plan available</td><td>Yes</td><td><i class="bi bi-check-circle-fill" style="color:#4ade80"></i> Yes</td></tr></tbody></table></div></div></section><section class="sec"><div class="container"><h2 class="h2s">Switching is simple</h2><div style="height:1rem"></div><div class="tile-grid"><div class="tile"><div class="step-num">1</div><h3>Export your data</h3><p>Bring contacts and past conversations as CSV.</p></div><div class="tile"><div class="step-num">2</div><h3>Connect your channels</h3><p>Add the widget, email and social accounts.</p></div><div class="tile"><div class="step-num">3</div><h3>Go live in parallel</h3><p>Run both for a few days, then switch over.</p></div></div></div></section><section class="sec"><div class="container"><h2 class="h2s">Common questions</h2><div style="height:1rem"></div><div class="accordion" id="v5"><div class="accordion-item"><h3 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#v50">Can I keep using my shared email inboxes while I try Loop?</button></h3><div id="v50" class="accordion-collapse collapse" data-bs-parent="#v5"><div class="accordion-body">Yes. Run them side by side and switch when you are ready.</div></div></div><div class="accordion-item"><h3 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#v51">Will I lose my conversation history?</button></h3><div id="v51" class="accordion-collapse collapse" data-bs-parent="#v5"><div class="accordion-body">You can import contacts and past conversations from CSV.</div></div></div><div class="accordion-item"><h3 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#v52">Is there a free plan to test with?</button></h3><div id="v52" class="accordion-collapse collapse" data-bs-parent="#v5"><div class="accordion-body">Yes, Loop has a free plan with no credit card required.</div></div></div></div></div></section><section class="sec"><div class="container"><h2 class="h2s">More comparisons</h2><div style="height:1rem"></div><div class="tile-grid"><a class="tile" href="vs-chat-only-tools.html"><div class="ico"><i class="bi bi-arrow-left-right"></i></div><h3>Loop vs chat-only tools</h3><p>Simple website chat widgets built around a single conversation window.</p></a><a class="tile" href="vs-traditional-help-desks.html"><div class="ico"><i class="bi bi-arrow-left-right"></i></div><h3>Loop vs traditional help desks</h3><p>Ticket-first platforms designed around email queues and formal workflows.</p></a><a class="tile" href="vs-diy-chatbot-builders.html"><div class="ico"><i class="bi bi-arrow-left-right"></i></div><h3>Loop vs DIY chatbot builders</h3><p>Tools where you design every conversation path yourself.</p></a></div></div></section>
+<section class="final-cta"><div class="container"><h2>What will your next 100 conversations earn?</h2><a href="register.html" class="btn btn-cobalt">Start for free</a><p style="margin-top:1rem;color:var(--ink-soft);font-size:.9rem">No credit card required</p></div></section>
+<footer class="ft"><div class="container"><div class="row g-4"><div class="col-lg-4"><a href="home.html" class="brand" style="text-decoration:none">Loop</a><p style="margin-top:.75rem;max-width:32ch">Customer service that turns conversations into revenue. Join businesses that reply faster and sell more.</p><a href="register.html" class="btn btn-cobalt" style="display:inline-block;color:#fff;padding:.6rem 1.2rem">Start for free</a></div><div class="col-6 col-md-3 col-lg-2"><h6>Loop</h6><a href="about.html">About</a><a href="faq.html">FAQ</a><a href="contact.html">Contact</a><a href="partners.html">Partners</a><a href="careers.html">Careers</a><a href="security.html">Security</a><a href="trust.html">Trust</a><a href="reviews.html">Reviews</a><a href="newsroom.html">Newsroom</a></div><div class="col-6 col-md-3 col-lg-2"><h6>Product</h6><a href="pricing.html">Pricing</a><a href="ai-agent.html">AI Agent</a><a href="help-desk.html">Help Desk</a><a href="live-chat.html">Live Chat</a><a href="flows.html">Flows</a><a href="features.html">All features</a><a href="integrations.html">Integrations</a><a href="contact-sales.html">Contact sales</a></div><div class="col-6 col-md-3 col-lg-2"><h6>Resources</h6><a href="customer-stories.html">Customer Stories</a><a href="watch-demo.html">Watch Demo</a><a href="ai-playground.html">AI Playground</a><a href="roi-calculator.html">ROI Calculator</a><a href="ebooks.html">Ebooks</a><a href="blog.html">Blog</a><a href="compare.html">Compare</a></div><div class="col-6 col-md-3 col-lg-2"><h6>Support</h6><a href="help-center.html">Help Center</a><a href="developers.html">Developers</a><a href="status.html">Status</a><a href="updates.html">Product Updates</a><a href="roadmap.html">Roadmap</a><a href="mobile-sdk.html">Mobile SDK</a></div></div><div class="fine"><span>© 2026 Loop. All rights reserved.</span><span><a href="privacy-policy.html">Privacy Policy</a><a href="terms.html">Terms</a><a href="sitemap.html">Sitemap</a></span></div></div></footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Reveal sections on scroll
+    var targets = document.querySelectorAll('section, .price-card, .value-card, .feature-block, .feature-row');
+    targets.forEach(function (el) { el.classList.add('reveal-el'); });
+
+    var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('is-visible');
+                io.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+    targets.forEach(function (el) { io.observe(el); });
+
+    // Sticky nav shadow on scroll
+    var nav = document.querySelector('.site-nav');
+    if (nav) {
+        window.addEventListener('scroll', function () {
+            nav.classList.toggle('scrolled', window.scrollY > 8);
+        });
+    }
+});
+</script>
+
+<script src="assets/glass-dark.js" defer></script>
+
+
+</body></html>

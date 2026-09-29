@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Log in — Live chat & support platform</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css">
+<style>
+    :root {
+        --ink: #14213D;
+        --ink-soft: #4A5578;
+        --paper: #FBF9F4;
+        --cobalt: #2B5FE2;
+        --cobalt-dark: #1E46B3;
+        --mist: #E7ECF5;
+        --line: #DCE2EF;
+        --font-display: 'Fraunces', Georgia, serif;
+        --font-body: 'Inter', system-ui, sans-serif;
+    }
+
+    body {
+        background: var(--paper);
+        color: var(--ink);
+        font-family: var(--font-body);
+        min-height: 100vh;
+    }
+
+    .site-nav { padding: 1.25rem 0; border-bottom: 1px solid var(--line); }
+    .site-nav .brand {
+        font-family: var(--font-display); font-weight: 600; font-size: 1.3rem;
+        color: var(--ink); text-decoration: none;
+    }
+
+    .auth-wrap {
+        min-height: calc(100vh - 78px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 3rem 1rem;
+    }
+
+    .auth-card {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        box-shadow: 0 24px 48px -28px rgba(20,33,61,0.2);
+        padding: 2.75rem 2.5rem;
+        width: 100%;
+        max-width: 400px;
+    }
+
+    .auth-card .eyebrow {
+        font-weight: 600; font-size: 0.9rem; color: var(--cobalt); margin-bottom: 0.5rem;
+    }
+    .auth-card h1 {
+        font-family: var(--font-display);
+        font-weight: 500;
+        font-size: 1.9rem;
+        margin-bottom: 0.5rem;
+    }
+    .auth-card p.sub { color: var(--ink-soft); font-size: 0.95rem; margin-bottom: 1.75rem; }
+
+    .form-label { font-weight: 600; font-size: 0.88rem; color: var(--ink); }
+    .form-control {
+        border: 1.5px solid var(--line);
+        border-radius: 8px;
+        padding: 0.7rem 0.9rem;
+        font-size: 0.95rem;
+    }
+    .form-control:focus {
+        border-color: var(--cobalt);
+        box-shadow: 0 0 0 3px rgba(43,95,226,0.12);
+    }
+
+    .btn-cobalt {
+        background: var(--cobalt); color: #fff; font-weight: 600;
+        padding: 0.75rem 1.5rem; border-radius: 8px; border: none; width: 100%;
+    }
+    .btn-cobalt:hover { background: var(--cobalt-dark); color: #fff; }
+
+    .divider {
+        display: flex; align-items: center; gap: 1rem;
+        color: var(--ink-soft); font-size: 0.85rem;
+        margin: 1.5rem 0;
+    }
+    .divider::before, .divider::after {
+        content: ""; flex: 1; height: 1px; background: var(--line);
+    }
+
+    .btn-social {
+        border: 1.5px solid var(--line);
+        border-radius: 8px;
+        padding: 0.65rem 1rem;
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: var(--ink);
+        background: #fff;
+        width: 100%;
+        display: flex; align-items: center; justify-content: center; gap: 0.6rem;
+    }
+    .btn-social:hover { border-color: var(--ink); }
+
+    .auth-footer {
+        text-align: center;
+        font-size: 0.9rem;
+        color: var(--ink-soft);
+        margin-top: 1.75rem;
+    }
+    .auth-footer a { color: var(--cobalt); font-weight: 600; text-decoration: none; }
+
+    .form-check-label { font-size: 0.88rem; color: var(--ink-soft); }
+    .forgot-link { font-size: 0.85rem; color: var(--cobalt); text-decoration: none; font-weight: 600; }
+</style>
+<style>
+/* ---- Modern polish: motion, depth, smoothness ---- */
+html { scroll-behavior: smooth; }
+
+.site-nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(251, 249, 244, 0.85);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transition: box-shadow 0.25s ease;
+}
+.site-nav.scrolled { box-shadow: 0 4px 20px -12px rgba(20,33,61,0.15); }
+
+.site-nav a.nav-link { position: relative; transition: color 0.2s ease; }
+.site-nav a.nav-link::after {
+    content: "";
+    position: absolute;
+    left: 0; bottom: -4px;
+    width: 0; height: 2px;
+    background: var(--cobalt);
+    transition: width 0.25s ease;
+}
+.site-nav a.nav-link:hover::after { width: 100%; }
+
+.btn-cobalt, .btn-outline-ink, .btn-social {
+    transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+}
+.btn-cobalt:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px -10px rgba(43, 95, 226, 0.45);
+}
+.btn-outline-ink:hover, .btn-social:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px -12px rgba(20,33,61,0.2);
+}
+.btn-cobalt:active, .btn-outline-ink:active { transform: translateY(0); }
+
+.price-card, .feature-visual, .value-card, .chat-mock,
+.auth-card, .contact-form-card, .logo-strip .wordmark {
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.price-card:hover, .value-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 24px 44px -24px rgba(20,33,61,0.28);
+}
+.price-card--featured:hover { transform: translateY(-8px); }
+.feature-visual:hover, .chat-mock:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 28px 50px -26px rgba(20,33,61,0.3);
+}
+.logo-strip .wordmark { display: inline-block; }
+.logo-strip .wordmark:hover { opacity: 0.9 !important; transform: translateY(-2px); }
+
+/* Scroll reveal */
+.reveal-el {
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity 0.7s cubic-bezier(.21,.6,.35,1), transform 0.7s cubic-bezier(.21,.6,.35,1);
+}
+.reveal-el.is-visible { opacity: 1; transform: translateY(0); }
+
+@media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .reveal-el { opacity: 1; transform: none; transition: none; }
+    .btn-cobalt:hover, .btn-outline-ink:hover, .btn-social:hover,
+    .price-card:hover, .value-card:hover, .feature-visual:hover, .chat-mock:hover {
+        transform: none;
+    }
+}
+</style>
+
+<link rel="stylesheet" href="assets/glass-dark.css">
+</head>
+<body>
+<div class="sci-bg" aria-hidden="true"></div>
+
+<!-- Nav -->
+<nav class="site-nav">
+    <div class="container">
+        <a href="home.html" class="brand">Loop</a>
+    </div>
+</nav>
+
+<div class="auth-wrap">
+    <div class="auth-card">
+        <div class="eyebrow">Welcome back</div>
+        <h1>Log in to Loop</h1>
+        <p class="sub">Pick up where your team left off.</p>
+
+        <form>
+            <div class="mb-3">
+                <label class="form-label" for="email">Work email</label>
+                <input type="email" class="form-control" id="email" placeholder="you@company.com">
+            </div>
+            <div class="mb-3">
+                <div class="d-flex justify-content-between">
+                    <label class="form-label" for="password">Password</label>
+                    <a href="#" class="forgot-link">Forgot?</a>
+                </div>
+                <input type="password" class="form-control" id="password" placeholder="••••••••">
+<p style="text-align:right;margin:.4rem 0 0"><a href="forgot-password.html" style="color:#9fc0ff;font-size:.88rem">Forgot password?</a></p>
+            </div>
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="remember">
+                <label class="form-check-label" for="remember">Keep me signed in</label>
+            </div>
+            <button type="submit" class="btn btn-cobalt">Log in</button>
+        </form>
+
+        <div class="divider">or</div>
+
+        <button type="button" class="btn btn-social">
+            <i class="bi bi-google"></i> Continue with Google
+        </button>
+
+        <div class="auth-footer">
+            Don't have an account? <a href="register.html">Start free trial</a>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Reveal sections on scroll
+    var targets = document.querySelectorAll('section, .price-card, .value-card, .feature-block, .feature-row');
+    targets.forEach(function (el) { el.classList.add('reveal-el'); });
+
+    var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('is-visible');
+                io.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+    targets.forEach(function (el) { io.observe(el); });
+
+    // Sticky nav shadow on scroll
+    var nav = document.querySelector('.site-nav');
+    if (nav) {
+        window.addEventListener('scroll', function () {
+            nav.classList.toggle('scrolled', window.scrollY > 8);
+        });
+    }
+});
+</script>
+
+<script src="assets/glass-dark.js" defer></script>
+</body>
+</html>
