@@ -2,6 +2,8 @@
 
 namespace App\Livewire\App;
 
+use App\Enums\CsatTrigger;
+use App\Models\CsatSetting;
 use Livewire\Component;
 
 class SettingsCsat extends Component
@@ -17,11 +19,11 @@ class SettingsCsat extends Component
 
     public function mount(): void
     {
-        $settings = app('currentWorkspace')->settings ?? [];
+        $settings = app('currentWorkspace')->csatSetting;
 
-        $this->ask_rating = $settings['csat']['conversations']['ask_rating'] ?? true;
-        $this->ask_comment = $settings['csat']['conversations']['ask_comment'] ?? false;
-        $this->ticket_rating_email = $settings['csat']['ticketing']['rating_email'] ?? true;
+        $this->ask_rating = $settings?->is_enabled ?? true;
+        $this->ask_comment = filled($settings?->follow_up_question);
+        $this->ticket_rating_email = $settings?->ticket_rating_email ?? true;
     }
 
     public function setTab(string $tab): void
@@ -31,14 +33,15 @@ class SettingsCsat extends Component
 
     public function save(): void
     {
-        $workspace = app('currentWorkspace');
-        $settings = $workspace->settings ?? [];
-
-        $settings['csat']['conversations']['ask_rating'] = $this->ask_rating;
-        $settings['csat']['conversations']['ask_comment'] = $this->ask_comment;
-        $settings['csat']['ticketing']['rating_email'] = $this->ticket_rating_email;
-
-        $workspace->update(['settings' => $settings]);
+        CsatSetting::updateOrCreate(
+            ['workspace_id' => app('currentWorkspace')->id],
+            [
+                'is_enabled' => $this->ask_rating,
+                'trigger' => CsatTrigger::AfterResolution,
+                'follow_up_question' => $this->ask_comment ? 'Anything else you\'d like to share?' : null,
+                'ticket_rating_email' => $this->ticket_rating_email,
+            ]
+        );
 
         $this->dispatch('toast', message: 'Customer satisfaction settings saved.');
     }

@@ -64,7 +64,7 @@ class Analytics extends Component
     private function weeklyHeights(Collection $timestamps): array
     {
         [$from, $to] = $this->range();
-        $spanSeconds = max($to->diffInSeconds($from), 1);
+        $spanSeconds = max($from->diffInSeconds($to, absolute: true), 1);
         $bucketSeconds = $spanSeconds / 7;
 
         $counts = array_fill(0, 7, 0);
@@ -73,7 +73,7 @@ class Analytics extends Component
             if (! $ts) {
                 continue;
             }
-            $offset = Carbon::parse($ts)->diffInSeconds($from, false);
+            $offset = $from->diffInSeconds(Carbon::parse($ts), absolute: true);
             $bucket = (int) floor($offset / $bucketSeconds);
             $bucket = max(0, min(6, $bucket));
             $counts[$bucket]++;
@@ -199,6 +199,7 @@ class Analytics extends Component
 
         $contacts = Contact::where('workspace_id', $workspaceId)
             ->whereBetween('created_at', [$from, $to])
+            ->withCount('tags')
             ->get();
 
         $chatSources = ['widget', 'messenger', 'instagram', 'whatsapp'];
@@ -211,14 +212,14 @@ class Analytics extends Component
 
         // "Qualified" = has at least one tag applied (a proxy for CRM qualification,
         // since there's no dedicated lead-scoring field on Contact).
-        $qualified = $contacts->filter(fn ($c) => $c->tags()->exists())->count();
+        $qualified = $contacts->filter(fn ($c) => $c->tags_count > 0)->count();
 
         $bySource = $contacts->groupBy(fn ($c) => $c->source ?? 'unknown')
             ->map(function ($rows, $source) {
                 return [
                     'source' => ucfirst($source),
                     'leads' => $rows->count(),
-                    'qualified' => $rows->filter(fn ($c) => $c->tags()->exists())->count(),
+                    'qualified' => $rows->filter(fn ($c) => $c->tags_count > 0)->count(),
                 ];
             })->sortByDesc('leads')->values();
 
@@ -276,11 +277,13 @@ class Analytics extends Component
             ->with(['aiMeta', 'metric'])
             ->get();
 
-        $resolvedByAi = $emailConvos->filter(fn ($c) => $c->aiMeta?->resolved_by_ai)->count();
+        $aiTouchedEmailConvos = $emailConvos->filter(fn ($c) => $c->aiMeta !== null);
+        $resolvedByAi = $aiTouchedEmailConvos->filter(fn ($c) => $c->aiMeta->resolved_by_ai)->count();
 
         // "Drafts sent" has no dedicated tracking field — approximated as
-        // operator-sent replies inside AI-touched email conversations.
-        $draftsSent = Message::whereIn('conversation_id', $emailConvos->pluck('id'))
+        // operator-sent replies inside AI-touched email conversations only
+        // (not every email conversation — most emails have no AI involvement).
+        $draftsSent = Message::whereIn('conversation_id', $aiTouchedEmailConvos->pluck('id'))
             ->where('sender_type', 'operator')
             ->count();
 
@@ -307,7 +310,7 @@ class Analytics extends Component
         $sources = AiDataSource::where('workspace_id', $workspaceId)->get();
 
         $answersGiven = $sources->sum('hits_count');
-        $topRate = $sources->map(fn ($s) => $s->successRate())->filter()->max();
+        $topRate = $sources->map(fn ($s) => $s->successRate())->filter(fn ($rate) => $rate !== null)->max();
 
         [$from, $to] = $this->range();
 

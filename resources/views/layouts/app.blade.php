@@ -55,7 +55,7 @@
         <header class="top">
             <h1>{{ $title ?? 'Dashboard' }}</h1>
             <button class="ib" data-toast="Help center opens here." aria-label="Help"><i class="bi bi-question-circle" aria-hidden="true"></i></button>
-            <button class="ib" data-toast="You are all caught up." aria-label="Notifications"><i class="bi bi-bell" aria-hidden="true"></i></button>
+            <livewire:app.notification-bell />
             <button class="ib" id="themeBtn" aria-label="Toggle dark mode"><i class="bi bi-moon-stars" aria-hidden="true"></i></button>
             <div class="trial"><b>7</b><span>days left in your trial</span></div>
             <button class="btn up">Upgrade</button>

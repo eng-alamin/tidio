@@ -9,6 +9,8 @@ use App\Models\Channel;
 use App\Models\Conversation;
 use App\Models\Mention;
 use App\Models\Message;
+use App\Models\SavedView;
+use App\Notifications\MentionedInConversation;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
@@ -36,6 +38,12 @@ class Inbox extends Component
     public bool $isNote = false;
 
     public bool $showAssignPicker = false;
+
+    public bool $showSaveView = false;
+
+    public string $newViewName = '';
+
+    public bool $newViewShared = false;
 
     public const VIEW_CHANNELS = [
         'view_messenger' => ConversationChannelType::Messenger,
@@ -252,6 +260,55 @@ class Inbox extends Component
         $this->showAssignPicker = false;
     }
 
+    /** Views a user bookmarked (their own + anything a teammate shared). */
+    #[Computed]
+    public function savedViews(): Collection
+    {
+        return SavedView::where('workspace_id', app('currentWorkspace')->id)
+            ->where(fn ($q) => $q->whereNull('user_id')->orWhere('user_id', auth()->id()))
+            ->orderBy('name')
+            ->get();
+    }
+
+    public function startSaveView(): void
+    {
+        $this->newViewName = '';
+        $this->newViewShared = false;
+        $this->showSaveView = true;
+    }
+
+    public function saveCurrentView(): void
+    {
+        $this->validate(['newViewName' => 'required|string|max:100']);
+
+        SavedView::create([
+            'workspace_id' => app('currentWorkspace')->id,
+            'user_id' => $this->newViewShared ? null : auth()->id(),
+            'name' => $this->newViewName,
+            'filters' => ['folder' => $this->folder],
+        ]);
+
+        $this->showSaveView = false;
+        unset($this->savedViews);
+
+        $this->dispatch('toast', message: 'View saved.');
+    }
+
+    public function applySavedView(int $savedViewId): void
+    {
+        $view = $this->savedViews->firstWhere('id', $savedViewId);
+
+        if ($view) {
+            $this->setFolder($view->filters['folder'] ?? 'unassigned');
+        }
+    }
+
+    public function deleteSavedView(int $savedViewId): void
+    {
+        SavedView::where('workspace_id', app('currentWorkspace')->id)->where('id', $savedViewId)->delete();
+        unset($this->savedViews);
+    }
+
     /** Open the conversation behind a mention and mark it read. */
     public function selectMention(int $mentionId): void
     {
@@ -293,7 +350,7 @@ class Inbox extends Component
             return;
         }
 
-        Message::create([
+        $message = Message::create([
             'conversation_id' => $conversation->id,
             'sender_type' => MessageSenderType::Operator,
             'sender_id' => auth()->id(),
@@ -303,12 +360,53 @@ class Inbox extends Component
 
         $conversation->update(['last_message_at' => now()]);
 
+        $this->createMentions($message);
+
         unset($this->selectedConversation, $this->conversations);
 
         $this->newMessage = '';
         $this->isNote = false;
 
         $this->dispatch('message-sent');
+    }
+
+    /**
+     * Parses "@Full Name" in the message body against active operators in the
+     * current workspace, creates a Mention row per match (so it shows up in
+     * the Mentions folder), and fires a real database notification — this is
+     * the only place Mention rows get created from the product UI itself
+     * (previously only the API controller and the demo seeder did).
+     */
+    private function createMentions(Message $message): void
+    {
+        if (! preg_match_all('/@([A-Za-z][\w\' -]{1,50})/u', $message->body, $matches)) {
+            return;
+        }
+
+        $workspace = app('currentWorkspace');
+        $operators = $workspace->users()->wherePivot('status', 'active')->get();
+
+        $mentioned = collect($matches[1])
+            ->map(fn ($name) => $operators->first(fn ($op) => str_starts_with(
+                strtolower($op->name),
+                strtolower(trim($name))
+            )))
+            ->filter()
+            ->filter(fn ($op) => $op->id !== auth()->id())
+            ->unique('id');
+
+        foreach ($mentioned as $operator) {
+            $mention = Mention::create([
+                'message_id' => $message->id,
+                'mentioned_user_id' => $operator->id,
+            ]);
+
+            $operator->notify(new MentionedInConversation($mention));
+        }
+
+        if ($mentioned->isNotEmpty()) {
+            $this->dispatch('mention-created');
+        }
     }
 
     public function markSolved(): void

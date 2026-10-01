@@ -1,4 +1,4 @@
-<div class="inbox" data-pane="list" wire:poll.5s="$refresh">
+<div class="inbox" data-pane="list" wire:poll.5s="$refresh" style="position:relative">
     <nav class="nav" aria-label="Inbox folders">
         <h4>Live conversations</h4>
         <a href="#" wire:click.prevent="setFolder('unassigned')" class="{{ $folder === 'unassigned' ? 'on' : '' }}">
@@ -34,7 +34,32 @@
         <a href="#" wire:click.prevent="setFolder('view_whatsapp')" class="{{ $folder === 'view_whatsapp' ? 'on' : '' }}">
             <i class="bi bi-whatsapp"></i>WhatsApp
         </a>
+
+        <h4>Saved <button type="button" class="ib" style="padding:2px" wire:click="startSaveView" aria-label="Save current view"><i class="bi bi-plus-lg"></i></button></h4>
+        @forelse ($this->savedViews as $view)
+            <a href="#" wire:click.prevent="applySavedView({{ $view->id }})" style="display:flex;align-items:center;justify-content:space-between;gap:6px">
+                <span><i class="bi bi-bookmark-star"></i>{{ $view->name }}</span>
+                <i class="bi bi-trash" style="opacity:.5" wire:click.stop="deleteSavedView({{ $view->id }})" title="Delete"></i>
+            </a>
+        @empty
+            <small style="color:var(--soft);padding:4px 10px;display:block">No saved views yet.</small>
+        @endforelse
     </nav>
+
+    @if ($showSaveView)
+        <div class="card" style="position:absolute;left:210px;top:10px;z-index:40;padding:14px;width:260px">
+            <label style="margin-top:0;font-size:12px">View name</label>
+            <input class="f" wire:model="newViewName" placeholder="e.g. Urgent WhatsApp" autofocus>
+            @error('newViewName') <small style="color:var(--bad)">{{ $message }}</small> @enderror
+            <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px">
+                <input type="checkbox" wire:model="newViewShared"> Share with team
+            </label>
+            <div style="margin-top:12px;display:flex;gap:8px">
+                <button type="button" class="btn pri" wire:click="saveCurrentView">Save</button>
+                <button type="button" class="btn" wire:click="$set('showSaveView', false)">Cancel</button>
+            </div>
+        </div>
+    @endif
 
     <div class="list">
         @if (isset(\App\Livewire\App\Inbox::VIEW_CHANNELS[$folder]))

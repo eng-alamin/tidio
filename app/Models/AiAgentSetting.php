@@ -10,9 +10,19 @@ class AiAgentSetting extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['workspace_id', 'tone', 'default_language', 'handoff_rules', 'is_active'];
+    protected $fillable = [
+        'workspace_id', 'agent_name', 'tone', 'guidance_instructions', 'default_language',
+        'handoff_rules', 'channel_rules', 'audience_answer_for', 'audience_exclude_tag',
+        'copilot_suggest_replies', 'copilot_summarize', 'is_active',
+    ];
 
-    protected $casts = ['handoff_rules' => 'array', 'is_active' => 'boolean'];
+    protected $casts = [
+        'handoff_rules' => 'array',
+        'channel_rules' => 'array',
+        'copilot_suggest_replies' => 'boolean',
+        'copilot_summarize' => 'boolean',
+        'is_active' => 'boolean',
+    ];
 
     public function workspace(): BelongsTo
     {

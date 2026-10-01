@@ -6,7 +6,8 @@ use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 
 Route::get('/login', function () {
-    $user = User::where('email', 'amanda.prohaska@example.com')->first();
+    // $user = User::where('email', 'amanda.prohaska@exaxmple.com')->first();
+    $user = User::where('email', 'xschmeler@example.com')->first();
 
     if ($user) {
         Auth::login($user);
@@ -26,9 +27,10 @@ Route::get('/register', fn () => view('site.register'))->name('register');
 
 // ---- Tenant app panel (workspace-scoped, needs auth + EnsureBelongsToWorkspace) ----
 Route::middleware(['auth', 'workspace'])->prefix('app')->name('app.')->group(function () {
+    Route::get('/widget/{widgetKey}.js', \App\Http\Controllers\WidgetLoaderController::class)->name('widget.loader');
     Route::get('/dashboard', \App\Livewire\App\Dashboard::class)->name('dashboard');
     Route::get('/inbox', \App\Livewire\App\Inbox::class)->name('inbox');
-    Route::get('/lyro ', \App\Livewire\App\Lyro::class)->name('lyro');
+    Route::get('/lyro', \App\Livewire\App\Lyro::class)->name('lyro');
     Route::get('/flows', \App\Livewire\App\Flows::class)->name('flows');
     Route::get('/customers', \App\Livewire\App\Customers::class)->name('customers');
     Route::get('/analytics', \App\Livewire\App\Analytics::class)->name('analytics');
