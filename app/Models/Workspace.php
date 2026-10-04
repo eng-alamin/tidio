@@ -17,7 +17,7 @@ class Workspace extends Model
 
     protected $fillable = [
         'owner_id', 'name', 'slug', 'timezone', 'plan', 'trial_ends_at',
-        'is_suspended', 'suspended_at', 'suspension_reason', 'settings',
+        'is_suspended', 'suspended_at', 'suspension_reason', 'settings', 'api_key',
     ];
 
     protected $casts = [

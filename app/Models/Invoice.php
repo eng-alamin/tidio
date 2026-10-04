@@ -36,6 +36,7 @@ class Invoice extends Model
 
     public function coupon(): BelongsTo
     {
-        return $this->belongsTo(Coupon::class);
+        // withTrashed: a deleted coupon must still show on the invoices it was used on.
+        return $this->belongsTo(Coupon::class)->withTrashed();
     }
 }

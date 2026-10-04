@@ -63,8 +63,31 @@ Route::middleware(['auth', 'workspace'])->prefix('app')->name('app.')->group(fun
 });
 
 // ---- Super-admin (platform staff only) ----
-Route::middleware(['auth:super_admin'])->prefix('admin')->name('admin.')->group(function () {
-    Route::get('/dashboard', fn () => view('super-admin.dashboard'))->name('dashboard');
-    Route::get('/tenants', fn () => view('super-admin.tenants'))->name('tenants');
-    Route::get('/billing', fn () => view('super-admin.billing'))->name('billing');
+// Ends an impersonation session. Outside the admin group on purpose: while impersonating,
+// the browser holds a tenant (web) login, and this must work even if the workspace gets suspended.
+Route::post('/impersonation/stop', [\App\Http\Controllers\Admin\ImpersonationController::class, 'stop'])->name('impersonation.stop');
+
+Route::prefix('admin')->name('admin.')->group(function () {
+    Route::middleware('guest:super_admin')->group(function () {
+        Route::get('/login', [\App\Http\Controllers\Admin\AdminAuthController::class, 'showLogin'])->name('login');
+        Route::post('/login', [\App\Http\Controllers\Admin\AdminAuthController::class, 'login'])->name('login.attempt');
+    });
+
+    Route::middleware('auth:super_admin')->group(function () {
+        Route::redirect('/', '/admin/dashboard');
+        Route::post('/logout', [\App\Http\Controllers\Admin\AdminAuthController::class, 'logout'])->name('logout');
+        Route::get('/dashboard', \App\Livewire\SuperAdmin\Dashboard::class)->name('dashboard');
+        Route::get('/tenants', \App\Livewire\SuperAdmin\Tenants::class)->name('tenants');
+        Route::get('/users', \App\Livewire\SuperAdmin\Users::class)->name('users');
+        Route::get('/subscriptions', \App\Livewire\SuperAdmin\Subscriptions::class)->name('subscriptions');
+        Route::get('/billing', \App\Livewire\SuperAdmin\Billing::class)->name('billing');
+        Route::get('/coupons', \App\Livewire\SuperAdmin\Coupons::class)->name('coupons');
+        Route::get('/feature-flags', \App\Livewire\SuperAdmin\FeatureFlags::class)->name('feature-flags');
+        Route::get('/api-access', \App\Livewire\SuperAdmin\ApiAccess::class)->name('api-access');
+        Route::get('/integrations', \App\Livewire\SuperAdmin\Integrations::class)->name('integrations');
+        Route::get('/roles', \App\Livewire\SuperAdmin\Roles::class)->name('roles');
+        Route::get('/support-inbox', \App\Livewire\SuperAdmin\SupportInbox::class)->name('support-inbox');
+        Route::get('/notifications', \App\Livewire\SuperAdmin\Notifications::class)->name('notifications');
+        Route::get('/activity-log', \App\Livewire\SuperAdmin\ActivityLog::class)->name('activity-log');
+    });
 });

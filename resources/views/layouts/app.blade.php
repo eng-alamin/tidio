@@ -16,6 +16,7 @@
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
+@include('partials.impersonation-banner')
 
 <div class="banner" role="status">
     <i class="bi bi-plug" aria-hidden="true"></i>
