@@ -27,7 +27,8 @@ Route::get('/register', fn () => view('site.register'))->name('register');
 
 // ---- Tenant app panel (workspace-scoped, needs auth + EnsureBelongsToWorkspace) ----
 Route::middleware(['auth', 'workspace'])->prefix('app')->name('app.')->group(function () {
-    Route::get('/widget/{widgetKey}.js', \App\Http\Controllers\WidgetLoaderController::class)->name('widget.loader');
+    // The public embed script now lives in routes/widget.php (/widget/{key}.js, no login needed).
+    Route::get('/widget-preview', \App\Http\Controllers\WidgetPreviewController::class)->name('widget.preview');
     Route::get('/dashboard', \App\Livewire\App\Dashboard::class)->name('dashboard');
     Route::get('/inbox', \App\Livewire\App\Inbox::class)->name('inbox');
     Route::get('/lyro', \App\Livewire\App\Lyro::class)->name('lyro');
@@ -90,4 +91,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/notifications', \App\Livewire\SuperAdmin\Notifications::class)->name('notifications');
         Route::get('/activity-log', \App\Livewire\SuperAdmin\ActivityLog::class)->name('activity-log');
     });
+});
+
+
+use Illuminate\Support\Facades\Artisan;
+
+Route::get('/generate-app-key', function () {
+    Artisan::call('key:generate');
+
+    return 'Application key generated successfully!';
 });

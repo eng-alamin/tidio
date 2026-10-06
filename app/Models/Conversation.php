@@ -98,4 +98,12 @@ class Conversation extends Model
     {
         return $this->morphToMany(Tag::class, 'taggable');
     }
+
+    /** Name shown in the Inbox: contact name → contact email → "Visitor #N" → "#id". */
+    public function displayName(): string
+    {
+        return $this->contact?->name
+            ?: $this->contact?->email
+            ?: ($this->visitor_id ? 'Visitor #'.$this->visitor_id : '#'.$this->id);
+    }
 }

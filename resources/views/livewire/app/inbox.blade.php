@@ -81,7 +81,7 @@
                      class="conv {{ $mention->message->conversation_id === $selectedConversationId ? 'on' : '' }}"
                      wire:click="selectMention({{ $mention->id }})">
                     <b>
-                        {{ $mention->message->conversation->contact?->name ?? '#'.$mention->message->conversation_id }}
+                        {{ $mention->message->conversation->displayName() }}
                         @unless ($mention->read_at) <span class="pill ok" style="margin-left:6px">New</span> @endunless
                     </b>
                     <small>{{ \Illuminate\Support\Str::limit($mention->message->body, 60) }}</small>
@@ -94,7 +94,7 @@
                 <div wire:key="conv-{{ $conversation->id }}"
                      class="conv {{ $conversation->id === $selectedConversationId ? 'on' : '' }}"
                      wire:click="selectConversation({{ $conversation->id }})">
-                    <b>#{{ $conversation->id }}</b>
+                    <b>{{ $conversation->displayName() }}</b>
                     <small>{{ $conversation->messages->first()?->body ?? 'No messages yet' }}</small>
                 </div>
             @empty
@@ -107,7 +107,7 @@
         @php($conversation = $this->selectedConversation)
         <div class="chat">
             <header>
-                <b>#{{ $conversation->id }}</b>
+                <b>{{ $conversation->displayName() }}</b>
                 <span style="display:flex;gap:8px;align-items:center">
                 <span style="position:relative">
                     <button class="btn" wire:click="toggleAssignPicker">
@@ -164,7 +164,7 @@
         <div class="info">
             <h4>Customer data</h4>
             <dl>
-                <dt>Name</dt><dd>{{ $conversation->contact?->name ?? '#'.$conversation->id }}</dd>
+                <dt>Name</dt><dd>{{ $conversation->displayName() }}</dd>
                 <dt>Location</dt><dd>{{ $conversation->visitor?->location ?? '—' }}</dd>
                 <dt>Browser</dt><dd>{{ $conversation->visitor?->browser ?? '—' }}</dd>
                 <dt>Email</dt><dd>{{ $conversation->contact?->email ?? '—' }}</dd>

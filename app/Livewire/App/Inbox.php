@@ -119,7 +119,7 @@ class Inbox extends Component
             ->when($this->folder === 'lyro', fn ($q) => $q
                 ->where('type', $this->moreType === 'tickets' ? 'ticket' : 'chat')
                 ->whereHas('aiMeta', fn ($m) => $m->where('resolved_by_ai', true)))
-            ->with(['contact', 'aiMeta', 'messages' => fn ($q) => $q->latest()->limit(1)])
+            ->with(['contact', 'visitor', 'aiMeta', 'messages' => fn ($q) => $q->latest()->limit(1)])
             ->orderByDesc('last_message_at')
             ->get();
     }
@@ -140,7 +140,7 @@ class Inbox extends Component
             ->whereHas('message.conversation', fn ($q) => $q
                 ->where('workspace_id', $workspaceId)
                 ->where('type', $type))
-            ->with('message.conversation.contact')
+            ->with(['message.conversation.contact', 'message.conversation.visitor'])
             ->orderByDesc('id')
             ->get();
     }
