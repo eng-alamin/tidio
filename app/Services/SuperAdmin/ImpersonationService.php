@@ -37,6 +37,9 @@ class ImpersonationService
         if (! self::canImpersonate($actor)) {
             throw new RuntimeException("Your role can't impersonate users.");
         }
+        if (! app(PlatformSettingsService::class)->impersonationAllowed()) {
+            throw new RuntimeException('Impersonation is switched off in Platform Settings.');
+        }
         if ($user->is_disabled) {
             throw new RuntimeException('This account is disabled. Enable it before impersonating.');
         }

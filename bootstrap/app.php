@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\BlockDuringMaintenance;
 use App\Http\Middleware\EnforceImpersonation;
 use App\Http\Middleware\EnsureBelongsToWorkspace;
 use App\Http\Middleware\ResolveWidgetVisitor;
@@ -20,9 +21,12 @@ return Application::configure(basePath: dirname(__DIR__))
             Route::middleware([])->group(base_path('routes/widget.php'));
         },
     )
+    // Reverb: POST /broadcasting/auth for logged-in operators + the private channels they may join.
+    ->withBroadcasting(__DIR__.'/../routes/channels.php', ['middleware' => ['web', 'auth']])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'workspace' => EnsureBelongsToWorkspace::class,
+            'maintenance' => BlockDuringMaintenance::class,
             'widget.site' => ResolveWidgetWebsite::class,
             'widget.visitor' => ResolveWidgetVisitor::class,
         ]);

@@ -26,12 +26,18 @@ class WidgetMessageController extends Controller
         return response()->json($payload)->header('Cache-Control', 'no-store');
     }
 
+    /** JSON or multipart (when files are attached). Throws ConversationLimitReached (403) when full. */
     public function store(SendMessageRequest $request, string $widgetKey): JsonResponse
     {
         /** @var Visitor $visitor */
         $visitor = $request->attributes->get('widget_visitor');
 
-        $payload = $this->chat->sendVisitorMessage($visitor, $request->validated('body'), $request->input('page_url'));
+        $payload = $this->chat->sendVisitorMessage(
+            $visitor,
+            (string) $request->validated('body'),
+            $request->input('page_url'),
+            array_values($request->file('files', [])),
+        );
 
         return response()->json($payload, 201)->header('Cache-Control', 'no-store');
     }

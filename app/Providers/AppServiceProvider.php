@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Http\Middleware\BlockDuringMaintenance;
 use App\Http\Middleware\EnsureBelongsToWorkspace;
 use App\Models\Conversation;
 use App\Observers\ConversationObserver;
@@ -28,7 +29,7 @@ class AppServiceProvider extends ServiceProvider
             return Route::post('/livewire/update', $handle)->middleware(['web']);
         });
 
-        Livewire::addPersistentMiddleware([EnsureBelongsToWorkspace::class]);
+        Livewire::addPersistentMiddleware([EnsureBelongsToWorkspace::class, BlockDuringMaintenance::class]);
 
         Conversation::observe(ConversationObserver::class);
 
@@ -43,7 +44,7 @@ class AppServiceProvider extends ServiceProvider
      */
     private function registerWidgetRateLimiters(): void
     {
-        foreach (['asset', 'init', 'poll', 'send', 'identify'] as $name) {
+        foreach (['asset', 'init', 'poll', 'send', 'identify', 'auth'] as $name) {
             RateLimiter::for("widget-{$name}", function (Request $request) use ($name) {
                 $who = in_array($name, ['asset', 'init'], true)
                     ? $request->ip()

@@ -11,12 +11,20 @@ use App\Models\Mention;
 use App\Models\Message;
 use App\Models\SavedView;
 use App\Notifications\MentionedInConversation;
+use App\Services\AttachmentService;
+use App\Services\Realtime\RealtimeConfig;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\On;
 use Livewire\Component;
+use Livewire\WithFileUploads;
+use Throwable;
 
 class Inbox extends Component
 {
+    use WithFileUploads;
+
     /**
      * Which folder in the left nav is active. One of:
      * unassigned | mine | solved          (Live conversations, type=chat)
@@ -37,6 +45,12 @@ class Inbox extends Component
 
     public bool $isNote = false;
 
+    /** The one file just picked in the browser; moved into $uploads by updatedNewUpload(). */
+    public $newUpload = null;
+
+    /** Files chosen for the next reply (validated, not stored until Send). */
+    public array $uploads = [];
+
     public bool $showAssignPicker = false;
 
     public bool $showSaveView = false;
@@ -54,6 +68,66 @@ class Inbox extends Component
     public function mount(): void
     {
         $this->selectedConversationId = $this->conversations->first()?->id;
+    }
+
+    /**
+     * Seconds between background refreshes. With real-time (Reverb) on, pushes do the work and this
+     * is just a safety net; without it, it is the old fast poll.
+     */
+    #[Computed]
+    public function pollInterval(): string
+    {
+        return app(RealtimeConfig::class)->enabled() ? '30s' : '5s';
+    }
+
+    /** A real-time "conversation changed" push arrived (see layouts/app). Re-rendering re-queries everything. */
+    #[On('inbox-signal')]
+    public function refreshFromSignal(): void
+    {
+        unset($this->conversations, $this->selectedConversation, $this->mentions);
+    }
+
+    #[Computed]
+    public function attachmentOptions(): array
+    {
+        $a = app(AttachmentService::class);
+
+        return ['enabled' => $a->enabled(), 'max' => $a->maxFiles(), 'accept' => $a->acceptAttribute()];
+    }
+
+    /** Picked one file: check it, and add it to the list (one at a time so earlier picks are kept). */
+    public function updatedNewUpload(): void
+    {
+        $attachments = app(AttachmentService::class);
+
+        $this->resetErrorBag('newUpload');
+
+        if (! $attachments->enabled() || $this->newUpload === null) {
+            $this->newUpload = null;
+
+            return;
+        }
+
+        if (count($this->uploads) >= $attachments->maxFiles()) {
+            $this->addError('newUpload', 'You can attach up to '.$attachments->maxFiles().' files.');
+            $this->newUpload = null;
+
+            return;
+        }
+
+        $this->validate(
+            ['newUpload' => $attachments->rules('newUpload')['newUpload.*'] ?? []],
+            attributes: ['newUpload' => 'file'],
+        );
+
+        $this->uploads[] = $this->newUpload;
+        $this->newUpload = null;
+    }
+
+    public function removeUpload(int $index): void
+    {
+        unset($this->uploads[$index]);
+        $this->uploads = array_values($this->uploads);
     }
 
     /** "live" or "tickets" — drives the Live conversations / Tickets tab above the list. */
@@ -333,6 +407,8 @@ class Inbox extends Component
     {
         $this->selectedConversationId = $conversationId;
         $this->newMessage = '';
+        $this->uploads = [];
+        $this->newUpload = null;
         $this->isNote = false;
         $this->showAssignPicker = false;
     }
@@ -345,26 +421,62 @@ class Inbox extends Component
     public function sendMessage(): void
     {
         $conversation = $this->selectedConversation;
+        $body = trim($this->newMessage);
 
-        if (! $conversation || trim($this->newMessage) === '') {
+        if (! $conversation || ($body === '' && $this->uploads === [])) {
             return;
         }
 
-        $message = Message::create([
-            'conversation_id' => $conversation->id,
-            'sender_type' => MessageSenderType::Operator,
-            'sender_id' => auth()->id(),
-            'body' => trim($this->newMessage),
-            'is_private_note' => $this->isNote,
-        ]);
+        $attachments = app(AttachmentService::class);
 
-        $conversation->update(['last_message_at' => now()]);
+        $this->validate(
+            ['newMessage' => ['nullable', 'string', 'max:10000']]
+            + $attachments->rules('uploads'),
+        );
+
+        $stored = [];
+
+        DB::beginTransaction();
+
+        try {
+            $stored = $attachments->store($this->uploads, $conversation->workspace_id, $conversation->id);
+
+            $message = Message::create([
+                'conversation_id' => $conversation->id,
+                'sender_type' => MessageSenderType::Operator,
+                'sender_id' => auth()->id(),
+                'body' => $body !== '' ? $body : null,
+                'attachments' => $stored ?: null,
+                'is_private_note' => $this->isNote,
+            ]);
+
+            $conversation->update(['last_message_at' => now()]);
+
+            activity('inbox')
+                ->performedOn($message)
+                ->event('created')
+                ->withProperties([
+                    'conversation_id' => $conversation->id,
+                    'note' => $this->isNote,
+                    'attachments' => count($stored),
+                ]) // never log the body or file names
+                ->log($this->isNote ? 'Internal note added' : 'Operator message sent');
+
+            DB::commit();
+        } catch (Throwable $e) {
+            DB::rollBack();
+            $attachments->discard($stored);
+
+            throw $e;
+        }
 
         $this->createMentions($message);
 
         unset($this->selectedConversation, $this->conversations);
 
         $this->newMessage = '';
+        $this->uploads = [];
+        $this->newUpload = null;
         $this->isNote = false;
 
         $this->dispatch('message-sent');
@@ -379,7 +491,7 @@ class Inbox extends Component
      */
     private function createMentions(Message $message): void
     {
-        if (! preg_match_all('/@([A-Za-z][\w\' -]{1,50})/u', $message->body, $matches)) {
+        if (! preg_match_all('/@([A-Za-z][\w\' -]{1,50})/u', (string) $message->body, $matches)) {
             return;
         }
 

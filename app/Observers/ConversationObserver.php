@@ -5,6 +5,7 @@ namespace App\Observers;
 use App\Enums\ConversationStatus;
 use App\Events\ConversationResolved;
 use App\Models\Conversation;
+use App\Services\Realtime\RealtimeSignals;
 use App\Services\UsageLimiter;
 
 class ConversationObserver
@@ -20,6 +21,15 @@ class ConversationObserver
         if ($conversation->workspace) {
             app(UsageLimiter::class)->record($conversation->workspace, 'conversations');
         }
+
+        // Operators' lists should show the new conversation at once.
+        app(RealtimeSignals::class)->conversationChanged(
+            $conversation->workspace_id,
+            $conversation->id,
+            $conversation->visitor_id,
+            'created',
+            false,
+        );
     }
 
     public function updated(Conversation $conversation): void
@@ -29,6 +39,18 @@ class ConversationObserver
             && $conversation->status === ConversationStatus::Solved
         ) {
             ConversationResolved::dispatch($conversation);
+        }
+
+        // Status / assignment changes: the Inbox refreshes, and the visitor hears about status
+        // changes (e.g. "marked as solved").
+        if ($conversation->wasChanged(['status', 'assigned_operator_id'])) {
+            app(RealtimeSignals::class)->conversationChanged(
+                $conversation->workspace_id,
+                $conversation->id,
+                $conversation->visitor_id,
+                'updated',
+                $conversation->wasChanged('status'),
+            );
         }
     }
 }

@@ -17,7 +17,14 @@
       <div class="stat-icon" style="background:var(--ok-soft); color:#4ADE80;" aria-hidden="true"><i class="bi bi-currency-dollar"></i></div>
       <div class="label">MRR</div>
       <div class="value">${{ number_format($this->mrr, 0) }}</div>
-      <div class="delta"><span style="color:var(--text-soft);">Active subscriptions only</span></div>
+      @if ($this->revenueTrend && $this->revenueTrend['change'] !== null)
+        <div class="delta {{ $this->revenueTrend['change'] >= 0 ? 'up' : '' }}" @if ($this->revenueTrend['change'] < 0) style="color:var(--danger);" @endif>
+          <i class="bi {{ $this->revenueTrend['change'] >= 0 ? 'bi-arrow-up-right' : 'bi-arrow-down-right' }}" aria-hidden="true"></i>
+          {{ abs($this->revenueTrend['change']) }}% since {{ $this->revenueTrend['from'] }}
+        </div>
+      @else
+        <div class="delta"><span style="color:var(--text-soft);">Active subscriptions only</span></div>
+      @endif
     </div>
     <div class="glass stat-card">
       <div class="stat-icon" style="background:rgba(255,201,60,.15); color:var(--citrus);" aria-hidden="true"><i class="bi bi-people-fill"></i></div>
@@ -36,11 +43,33 @@
   <div class="grid-2 mb-4">
     <div class="glass panel">
       <div class="panel-title"><h5>Revenue Trend</h5></div>
-      <div class="state-block">
-        <div class="state-icon" aria-hidden="true"><i class="bi bi-graph-up"></i></div>
-        <h6>Not enough history yet</h6>
-        <p>The platform does not store historical MRR snapshots yet. A scheduled job that records MRR daily will power this chart.</p>
-      </div>
+      @if ($trend = $this->revenueTrend)
+        <svg viewBox="0 0 600 200" role="img" style="width:100%; height:auto; display:block;"
+             aria-label="Monthly recurring revenue from {{ $trend['from'] }} to {{ $trend['to'] }}, between {{ $trend['min'] }} and {{ $trend['max'] }}">
+          <defs>
+            <linearGradient id="mrrFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" style="stop-color:var(--cobalt); stop-opacity:.35"/>
+              <stop offset="100%" style="stop-color:var(--cobalt); stop-opacity:0"/>
+            </linearGradient>
+          </defs>
+          <path d="{{ $trend['area'] }}" fill="url(#mrrFill)"/>
+          <polyline points="{{ $trend['line'] }}" fill="none" style="stroke:var(--cobalt)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+          @foreach ($trend['dots'] as $dot)
+            <circle cx="{{ $dot['x'] }}" cy="{{ $dot['y'] }}" r="3.5" style="fill:var(--cobalt)"><title>{{ $dot['title'] }}</title></circle>
+          @endforeach
+        </svg>
+        <div class="d-flex justify-content-between mt-2" style="color:var(--text-soft); font-size:.78rem;">
+          <span>{{ $trend['from'] }}</span>
+          <span>Low {{ $trend['min'] }} · High {{ $trend['max'] }}</span>
+          <span>{{ $trend['to'] }}</span>
+        </div>
+      @else
+        <div class="state-block">
+          <div class="state-icon" aria-hidden="true"><i class="bi bi-graph-up"></i></div>
+          <h6>Collecting data</h6>
+          <p>MRR is recorded once a day. The chart appears after the second day of data.</p>
+        </div>
+      @endif
     </div>
 
     <div class="glass panel">

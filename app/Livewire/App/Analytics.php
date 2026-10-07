@@ -307,7 +307,7 @@ class Analytics extends Component
 
         // hits_count/success_count are lifetime counters (no per-hit timestamp
         // log exists), so this sub-tab isn't affected by the date range.
-        $sources = AiDataSource::where('workspace_id', $workspaceId)->get();
+        $sources = AiDataSource::where('workspace_id', $workspaceId)->get(AiDataSource::LIST_COLUMNS);
 
         $answersGiven = $sources->sum('hits_count');
         $topRate = $sources->map(fn ($s) => $s->successRate())->filter(fn ($rate) => $rate !== null)->max();

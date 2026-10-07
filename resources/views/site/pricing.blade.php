@@ -69,7 +69,7 @@
                         <li><i class="bi bi-check-lg"></i> Custom integrations & API</li>
                         <li><i class="bi bi-check-lg"></i> Dedicated account manager</li>
                     </ul>
-                    <a href="contact.html" class="btn btn-outline-ink w-100 text-center">Talk to sales</a>
+                    <a href="{{ url('/contact') }}" class="btn btn-outline-ink w-100 text-center">Talk to sales</a>
                 </div>
             </div>
 

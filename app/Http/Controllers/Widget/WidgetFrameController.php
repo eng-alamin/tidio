@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Widget;
 
 use App\Http\Controllers\Controller;
 use App\Models\Website;
+use App\Services\Realtime\RealtimeConfig;
 use App\Services\Widget\WidgetConfigBuilder;
 use App\Services\Widget\WidgetOriginPolicy;
 use Illuminate\Http\Request;
@@ -16,6 +17,7 @@ class WidgetFrameController extends Controller
     public function __construct(
         private readonly WidgetConfigBuilder $config,
         private readonly WidgetOriginPolicy $origins,
+        private readonly RealtimeConfig $realtime,
     ) {
     }
 
@@ -28,11 +30,14 @@ class WidgetFrameController extends Controller
 
         // frame-ancestors is what actually stops other sites from embedding this chat;
         // the rest locks the frame down to its own inline script/style and same-origin API calls.
+        // The only extra thing the frame may talk to is the Reverb socket, when real-time is on.
+        $connect = trim("'self' ".$this->realtime->connectSrc());
+
         $csp = implode('; ', [
             "default-src 'none'",
             "script-src 'nonce-{$nonce}'",
             "style-src 'nonce-{$nonce}'",
-            "connect-src 'self'",
+            "connect-src {$connect}",
             "img-src 'self' data:",
             "base-uri 'none'",
             "form-action 'none'",
@@ -43,6 +48,7 @@ class WidgetFrameController extends Controller
             ->view('widget.frame', [
                 'config' => $this->config->frame($website),
                 'nonce' => $nonce,
+                'realtimeScript' => $this->realtime->enabled() ? asset('vendor/realtime/loop-realtime.js') : null,
             ])
             ->header('Content-Security-Policy', $csp)
             ->header('Cache-Control', 'no-store')

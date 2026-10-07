@@ -19,7 +19,9 @@ use Throwable;
  */
 class TenantService
 {
-    private const TRIAL_DAYS = 14;
+    public function __construct(private readonly PlatformSettingsService $settings)
+    {
+    }
 
     /**
      * @param  array{name:string, owner_name:string, owner_email:string, owner_password:string, plan_id:int}  $data
@@ -29,7 +31,7 @@ class TenantService
     public function create(SuperAdmin $actor, array $data): Workspace
     {
         $plan = Plan::findOrFail($data['plan_id']);
-        $trialEndsAt = now()->addDays(self::TRIAL_DAYS);
+        $trialEndsAt = now()->addDays($this->settings->trialDays());
 
         DB::beginTransaction();
 
@@ -46,6 +48,7 @@ class TenantService
                 'name' => $data['name'],
                 'slug' => $this->uniqueSlug($data['name']),
                 'plan' => $plan->slug,
+                'timezone' => $this->settings->defaultTimezone(),
                 'trial_ends_at' => $trialEndsAt,
             ]);
 

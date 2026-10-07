@@ -7,6 +7,8 @@ use App\Http\Requests\Widget\IdentifyRequest;
 use App\Http\Requests\Widget\InitRequest;
 use App\Models\Visitor;
 use App\Models\Website;
+use App\Services\Realtime\RealtimeConfig;
+use App\Services\Widget\VisitorCountryResolver;
 use App\Services\Widget\WidgetChatService;
 use App\Services\Widget\WidgetConfigBuilder;
 use Illuminate\Http\JsonResponse;
@@ -16,6 +18,8 @@ class WidgetSessionController extends Controller
     public function __construct(
         private readonly WidgetChatService $chat,
         private readonly WidgetConfigBuilder $config,
+        private readonly VisitorCountryResolver $countries,
+        private readonly RealtimeConfig $realtime,
     ) {
     }
 
@@ -31,6 +35,7 @@ class WidgetSessionController extends Controller
             $request->ip(),
             $request->userAgent(),
             $request->input('page_url'),
+            $this->countries->resolve($request),
         );
 
         $website->markInstalledFrom($request->input('page_url'));
@@ -38,6 +43,7 @@ class WidgetSessionController extends Controller
         return $this->json([
             'session_id' => $visitor->session_id,
             'online' => $this->config->isOnline($website),
+            'realtime' => $this->realtime->forVisitor($visitor), // null = keep polling
         ] + $this->chat->snapshot($visitor));
     }
 

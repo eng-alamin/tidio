@@ -53,6 +53,22 @@ body{font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto San
 .composer form{display:flex;align-items:flex-end;gap:8px}
 .composer textarea{flex:1;font:inherit;resize:none;border:1px solid var(--line);border-radius:12px;padding:10px 12px;max-height:120px;min-height:42px;line-height:1.35}
 .composer .btn{min-height:42px}
+.composer .attach{all:unset;box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:12px;cursor:pointer;color:var(--soft);flex:none}
+.composer .attach:hover{background:var(--mist)}
+.composer .attach:focus-visible{outline:2px solid var(--c);outline-offset:0}
+.composer .attach svg{width:20px;height:20px;fill:currentColor}
+.chips{display:flex;flex-wrap:wrap;gap:6px;padding:0 0 8px}
+.chip{display:inline-flex;align-items:center;gap:6px;max-width:100%;background:var(--mist);border-radius:999px;padding:4px 6px 4px 10px;font-size:12px}
+.chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px}
+.chip button{all:unset;cursor:pointer;width:18px;height:18px;border-radius:50%;text-align:center;line-height:18px;color:var(--soft)}
+.chip button:hover{background:#fff}
+.chip button:focus-visible{outline:2px solid var(--c)}
+.files{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.files:first-child{margin-top:0}
+.files a,.files .nolink{display:flex;align-items:center;gap:8px;color:inherit;text-decoration:none;background:rgba(0,0,0,.06);border-radius:10px;padding:6px 10px;font-size:13px;overflow-wrap:anywhere}
+.visitor .files a,.visitor .files .nolink{background:rgba(255,255,255,.18)}
+.files a:hover{text-decoration:underline}
+.files img{display:block;max-width:220px;max-height:180px;border-radius:10px;background:#fff}
 @media (prefers-reduced-motion:reduce){.log{scroll-behavior:auto}}
 </style>
 </head>
@@ -84,13 +100,21 @@ body{font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto San
   </section>
 
   <footer class="composer">
+    <div class="chips" id="chips" hidden></div>
     <form id="form">
+      <button class="attach" id="attachBtn" type="button" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.5 6v11.5a4 4 0 0 1-8 0V5a2.5 2.5 0 0 1 5 0v10.5a1 1 0 0 1-2 0V6H10v9.5a2.5 2.5 0 0 0 5 0V5a4 4 0 0 0-8 0v12.5a5.5 5.5 0 0 0 11 0V6h-1.5z"/></svg>
+      </button>
+      <input id="fileInput" type="file" multiple hidden>
       <textarea id="input" rows="1"></textarea>
       <button class="btn" id="sendBtn" type="submit"></button>
     </form>
   </footer>
 </div>
 
+@if (! empty($realtimeScript))
+<script nonce="{{ $nonce }}" src="{{ $realtimeScript }}"></script>
+@endif
 <script nonce="{{ $nonce }}">
 (function () {
 'use strict';
@@ -132,6 +156,8 @@ var tmpCounter = 0;
 var lastFrom = null, lastName = null;
 var disabled = false;
 var sessionReady = false;   // the composer can type before this, but can't send
+var pending = [];           // File objects chosen but not sent yet
+var rt = { client: null, connected: false, channel: null };
 
 // ---------------------------------------------------------------- theming
 function contrast(hex) {
@@ -154,6 +180,7 @@ input.setAttribute('aria-label', S.placeholder);
 input.setAttribute('maxlength', String(cfg.max_length));
 sendBtn.textContent = S.send_button;
 sendBtn.disabled = true;
+var A = cfg.attachments || { enabled: false };
 $('emailTitle').textContent = S.email_title;
 $('nameInput').setAttribute('placeholder', S.name_placeholder);
 $('nameInput').setAttribute('aria-label', S.name_placeholder);
@@ -200,7 +227,42 @@ function scrollDown() {
   logEl.scrollTop = logEl.scrollHeight;
 }
 
-/** m: { from, body, name, at, state } */
+function fmtSize(n) {
+  if (n >= 1048576) { return (n / 1048576).toFixed(1) + ' MB'; }
+  return Math.max(1, Math.round(n / 1024)) + ' KB';
+}
+
+/** list: [{ name, kind, size, url? }] — url is missing while a file is still uploading. */
+function renderFiles(list) {
+  var box = document.createElement('div');
+  box.className = 'files';
+  list.forEach(function (f) {
+    var el;
+    if (f.url) {
+      el = document.createElement('a');
+      el.href = f.url;
+      el.target = '_blank';
+      el.rel = 'noopener noreferrer';
+      if (f.kind === 'image') {
+        var img = document.createElement('img');
+        img.src = f.url;
+        img.alt = f.name;
+        img.loading = 'lazy';
+        el.appendChild(img);
+        box.appendChild(el);
+        return;
+      }
+    } else {
+      el = document.createElement('div');
+      el.className = 'nolink';
+    }
+    el.appendChild(document.createTextNode('\uD83D\uDCCE ' + f.name + (f.size ? ' (' + fmtSize(f.size) + ')' : '')));
+    box.appendChild(el);
+  });
+  return box;
+}
+
+/** m: { from, body, name, at, state, attachments } */
 function addRow(m) {
   var stick = nearBottom() || m.from === 'visitor';
   var row = document.createElement('div');
@@ -215,7 +277,8 @@ function addRow(m) {
 
   var bubble = document.createElement('div');
   bubble.className = 'bubble';
-  linkify(bubble, m.body);
+  if (m.body) { linkify(bubble, m.body); }
+  if (m.attachments && m.attachments.length) { bubble.appendChild(renderFiles(m.attachments)); }
   row.appendChild(bubble);
 
   if (m.from !== 'system') {
@@ -255,7 +318,7 @@ function resetLog() {
 
 function addServerMessage(m) {
   if (known[m.id]) { return false; }
-  known[m.id] = addRow({ from: m.from, body: m.body, name: m.name, at: m.at });
+  known[m.id] = addRow({ from: m.from, body: m.body, name: m.name, at: m.at, attachments: m.attachments });
   if (m.id > lastId) { lastId = m.id; }
   return true;
 }
@@ -295,12 +358,13 @@ document.addEventListener('visibilitychange', function () { if (document.visibil
 function api(method, path, body) {
   var headers = { 'Accept': 'application/json' };
   if (sid) { headers['X-Widget-Session'] = sid; }
-  if (body) { headers['Content-Type'] = 'application/json'; }
+  var isForm = typeof FormData !== 'undefined' && body instanceof FormData;
+  if (body && !isForm) { headers['Content-Type'] = 'application/json'; } // FormData sets its own boundary
 
   return fetch(base + path, {
     method: method,
     headers: headers,
-    body: body ? JSON.stringify(body) : undefined,
+    body: body ? (isForm ? body : JSON.stringify(body)) : undefined,
     credentials: 'omit',
     cache: 'no-store'
   }).then(function (res) {
@@ -339,6 +403,7 @@ function init() {
     renderStatus();
 
     data.messages.forEach(addServerMessage);
+    startRealtime(data.realtime);
     convStatus = data.conversation ? data.conversation.status : null;
     hasConv = !!data.conversation;
     errors = 0;
@@ -364,12 +429,44 @@ function sessionLost() {
   return init();
 }
 
+// ---------------------------------------------------------------- real-time (Reverb)
+function startRealtime(info) {
+  if (!info || !info.channel || !window.LoopRealtime) { return; }
+
+  if (rt.client && rt.channel === info.channel) { return; }
+
+  if (!rt.client) {
+    rt.client = window.LoopRealtime.connect({
+      key: info.key, host: info.host, port: info.port, scheme: info.scheme,
+      authEndpoint: base + '/broadcasting/auth',
+      authHeaders: function () { return sid ? { 'X-Widget-Session': sid } : {}; },
+      credentials: 'omit',
+      onState: function (up) {
+        rt.connected = up;
+        if (up && hasConv) { poll(); }   // catch up on anything missed while disconnected
+        schedule();
+      }
+    });
+  } else if (rt.channel) {
+    rt.client.unsubscribe(rt.channel);   // session was renewed: the visitor (and channel) changed
+  }
+
+  rt.channel = info.channel;
+  rt.client.subscribe(info.channel, {
+    'conversation.signal': function () {
+      hasConv = true;                    // a signal after "solved" means there is something new
+      poll();
+    }
+  });
+}
+
 // ---------------------------------------------------------------- polling
 function schedule() {
   clearTimeout(timer);
   if (disabled || !hasConv) { return; }
   var visible = isOpen && document.visibilityState === 'visible';
-  var delay = visible ? 3000 : 12000;
+  // With a live socket polling is only a safety net; without one it runs at full speed.
+  var delay = rt.connected ? (visible ? 30000 : 60000) : (visible ? 3000 : 12000);
   if (errors) { delay = Math.min(30000, delay * Math.pow(2, errors)); }
   timer = setTimeout(poll, delay);
 }
@@ -411,14 +508,29 @@ function poll() {
 }
 
 // ---------------------------------------------------------------- sending
-function send(text, row, retried) {
+function send(text, row, retried, files) {
+  files = files || [];
+
   if (!row) {
-    row = addRow({ from: 'visitor', body: text, at: new Date().toISOString(), state: 'sending' });
+    row = addRow({
+      from: 'visitor', body: text, at: new Date().toISOString(), state: 'sending',
+      attachments: files.map(function (f) { return { name: f.name, size: f.size, kind: 'file' }; })
+    });
   } else {
     setRowState(row, 'sending');
   }
 
-  return api('POST', '/messages', { body: text, page_url: page || null }).then(function (res) {
+  var payload;
+  if (files.length) {
+    payload = new FormData();
+    payload.append('body', text);
+    if (page) { payload.append('page_url', page); }
+    files.forEach(function (f) { payload.append('files[]', f); });
+  } else {
+    payload = { body: text, page_url: page || null };
+  }
+
+  return api('POST', '/messages', payload).then(function (res) {
     var m = res.message;
 
     if (known[m.id]) {
@@ -426,6 +538,12 @@ function send(text, row, retried) {
     } else {
       known[m.id] = row;
       setRowState(row, '', m.at);
+      if (m.attachments && m.attachments.length) {
+        var bubble = row.querySelector('.bubble');
+        var old = bubble.querySelector('.files');
+        if (old) { bubble.removeChild(old); }
+        bubble.appendChild(renderFiles(m.attachments)); // now with real download links
+      }
     }
     if (m.id > lastId) { lastId = m.id; }
 
@@ -436,13 +554,18 @@ function send(text, row, retried) {
     maybeAskEmail();
   }).catch(function (e) {
     if (e.status === 401 && !retried) {
-      return sessionLost().then(function () { return send(text, row, true); });
+      return sessionLost().then(function () { return send(text, row, true, files); });
     }
-    markFailed(row, text, e);
+    if (e.status === 403 && e.data && e.data.code === 'conversation_limit') {
+      row.parentNode && row.parentNode.removeChild(row);
+      addRow({ from: 'system', body: S.limit_reached, at: new Date().toISOString() });
+      return;
+    }
+    markFailed(row, text, e, files);
   });
 }
 
-function markFailed(row, text, e) {
+function markFailed(row, text, e, files) {
   setRowState(row, 'failed');
   var meta = row.querySelector('.meta');
   meta.textContent = '';
@@ -450,17 +573,20 @@ function markFailed(row, text, e) {
   btn.type = 'button';
   btn.className = 'retry';
   btn.textContent = (e && e.status === 422 && e.data && e.data.message) ? e.data.message : S.retry;
-  btn.addEventListener('click', function () { send(text, row); });
+  btn.addEventListener('click', function () { send(text, row, false, files); });
   meta.appendChild(btn);
 }
 
 form.addEventListener('submit', function (ev) {
   ev.preventDefault();
   var text = input.value.trim();
-  if (!text || disabled || !sessionReady) { return; }
+  if ((!text && !pending.length) || disabled || !sessionReady) { return; }
+  var files = pending;
+  pending = [];
+  renderChips();
   input.value = '';
   autosize();
-  send(text);
+  send(text, null, false, files);
   input.focus();
 });
 
@@ -476,6 +602,52 @@ function autosize() {
   input.style.height = Math.min(input.scrollHeight, 120) + 'px';
 }
 input.addEventListener('input', autosize);
+
+// ---------------------------------------------------------------- attachments
+var attachBtn = $('attachBtn'), fileInput = $('fileInput'), chipsEl = $('chips');
+
+if (A.enabled) {
+  attachBtn.hidden = false;
+  attachBtn.setAttribute('aria-label', S.attach);
+  attachBtn.setAttribute('title', S.attach);
+  fileInput.setAttribute('accept', A.accept);
+}
+
+function notice(text) { addRow({ from: 'system', body: text, at: new Date().toISOString() }); }
+
+function renderChips() {
+  chipsEl.textContent = '';
+  chipsEl.hidden = pending.length === 0;
+  pending.forEach(function (f, i) {
+    var chip = document.createElement('div');
+    chip.className = 'chip';
+    var label = document.createElement('span');
+    label.textContent = f.name;
+    var x = document.createElement('button');
+    x.type = 'button';
+    x.textContent = '\u00D7';
+    x.setAttribute('aria-label', S.remove_file + ': ' + f.name);
+    x.addEventListener('click', function () { pending.splice(i, 1); renderChips(); });
+    chip.appendChild(label);
+    chip.appendChild(x);
+    chipsEl.appendChild(chip);
+  });
+}
+
+attachBtn.addEventListener('click', function () { if (!disabled) { fileInput.click(); } });
+
+fileInput.addEventListener('change', function () {
+  var allowed = (A.accept || '').toLowerCase().split(',');
+  Array.prototype.forEach.call(fileInput.files, function (f) {
+    var ext = '.' + (f.name.split('.').pop() || '').toLowerCase();
+    if (allowed.indexOf(ext) === -1) { notice(S.file_type); return; }
+    if (f.size > A.max_kb * 1024) { notice(S.file_too_big); return; }
+    if (pending.length >= A.max_files) { notice(S.file_too_many); return; }
+    pending.push(f);
+  });
+  fileInput.value = '';
+  renderChips();
+});
 
 // ---------------------------------------------------------------- optional email capture
 function maybeAskEmail() {

@@ -1,4 +1,4 @@
-<div class="inbox" data-pane="list" wire:poll.5s="$refresh" style="position:relative">
+<div class="inbox" data-pane="list" wire:poll.{{ $this->pollInterval }}="$refresh" style="position:relative">
     <nav class="nav" aria-label="Inbox folders">
         <h4>Live conversations</h4>
         <a href="#" wire:click.prevent="setFolder('unassigned')" class="{{ $folder === 'unassigned' ? 'on' : '' }}">
@@ -84,7 +84,7 @@
                         {{ $mention->message->conversation->displayName() }}
                         @unless ($mention->read_at) <span class="pill ok" style="margin-left:6px">New</span> @endunless
                     </b>
-                    <small>{{ \Illuminate\Support\Str::limit($mention->message->body, 60) }}</small>
+                    <small>{{ $mention->message->previewText(60) }}</small>
                 </div>
             @empty
                 <div class="conv" style="cursor:default"><small style="color:var(--soft)">No mentions yet.</small></div>
@@ -95,7 +95,7 @@
                      class="conv {{ $conversation->id === $selectedConversationId ? 'on' : '' }}"
                      wire:click="selectConversation({{ $conversation->id }})">
                     <b>{{ $conversation->displayName() }}</b>
-                    <small>{{ $conversation->messages->first()?->body ?? 'No messages yet' }}</small>
+                    <small>{{ $conversation->messages->first()?->previewText(80) ?: 'No messages yet' }}</small>
                 </div>
             @empty
                 <div class="conv" style="cursor:default"><small style="color:var(--soft)">No conversations here.</small></div>
@@ -146,13 +146,50 @@
                     <div class="m {{ $message->sender_type->value === 'operator' ? 'me' : '' }} {{ $message->is_private_note ? 'note' : '' }}"
                          wire:key="msg-{{ $message->id }}">
                         {{ $message->is_private_note ? 'Note: ' : '' }}{{ $message->body }}
+                        @if ($message->hasAttachments())
+                            <div style="display:flex;flex-direction:column;gap:6px;margin-top:{{ filled($message->body) ? '8px' : '0' }}">
+                                @foreach ($message->attachments as $file)
+                                    @php($fileUrl = route('app.attachments.show', ['message' => $message->id, 'attachment' => $file['id']]))
+                                    @if (($file['kind'] ?? 'file') === 'image')
+                                        <a href="{{ $fileUrl }}" target="_blank" rel="noopener">
+                                            <img src="{{ $fileUrl }}" alt="{{ $file['name'] }}" loading="lazy" style="display:block;max-width:240px;max-height:200px;border-radius:10px">
+                                        </a>
+                                    @else
+                                        <a href="{{ $fileUrl }}" download style="display:inline-flex;align-items:center;gap:6px;color:inherit;text-decoration:underline">
+                                            <i class="bi bi-paperclip" aria-hidden="true"></i>{{ $file['name'] }}
+                                            <small style="opacity:.7">({{ number_format(($file['size'] ?? 0) / 1024, 0) }} KB)</small>
+                                        </a>
+                                    @endif
+                                @endforeach
+                            </div>
+                        @endif
                     </div>
                 @empty
                     <div class="m" style="color:var(--soft)">No messages yet.</div>
                 @endforelse
             </div>
 
+            @if ($uploads)
+                <div style="display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px 0">
+                    @foreach ($uploads as $i => $upload)
+                        <span class="pill" wire:key="upload-{{ $i }}" style="display:inline-flex;align-items:center;gap:6px">
+                            <i class="bi bi-paperclip" aria-hidden="true"></i>{{ \Illuminate\Support\Str::limit($upload->getClientOriginalName(), 28) }}
+                            <button type="button" class="ib" style="padding:0 2px" wire:click="removeUpload({{ $i }})" aria-label="Remove file"><i class="bi bi-x"></i></button>
+                        </span>
+                    @endforeach
+                </div>
+            @endif
+            @error('newUpload') <small style="color:var(--bad);padding:4px 12px;display:block">{{ $message }}</small> @enderror
+            @error('uploads.*') <small style="color:var(--bad);padding:4px 12px;display:block">{{ $message }}</small> @enderror
+            <div wire:loading wire:target="newUpload" style="padding:4px 12px;color:var(--soft);font-size:12px">Uploading…</div>
+
             <form class="reply" wire:submit="sendMessage">
+                @if ($this->attachmentOptions['enabled'])
+                    <label class="btn" style="cursor:pointer;margin:0" title="Attach a file" aria-label="Attach a file">
+                        <i class="bi bi-paperclip" aria-hidden="true"></i>
+                        <input type="file" wire:model="newUpload" accept="{{ $this->attachmentOptions['accept'] }}" hidden>
+                    </label>
+                @endif
                 <input type="text" wire:model="newMessage"
                        placeholder="{{ $isNote ? 'Write an internal note…' : 'Type a message…' }}"
                        aria-label="Message">

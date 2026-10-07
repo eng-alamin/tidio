@@ -31,6 +31,59 @@ return [
         'history' => 20,
     ],
 
+    /*
+    | File attachments (visitor <-> operator).
+    | Files live on a PRIVATE disk (never in /public) and are only served through authorised routes:
+    | operators through the logged-in app, visitors through short-lived signed URLs.
+    | max_kb is per file; the PHP limits `upload_max_filesize` / `post_max_size` must be at least
+    | max_files x max_kb. SVG and HTML are deliberately NOT allowed (script injection).
+    */
+    'attachments' => [
+        'enabled' => (bool) env('WIDGET_ATTACHMENTS_ENABLED', true),
+        'disk' => env('WIDGET_ATTACHMENTS_DISK', 'local'),
+        'max_files' => 3,
+        'max_kb' => 5120,
+        'url_ttl_minutes' => 360,
+        'extensions' => [
+            'jpg', 'jpeg', 'png', 'gif', 'webp',
+            'pdf', 'txt', 'csv',
+            'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
+            'zip',
+        ],
+    ],
+
+    /*
+    | Visitor country (used by Lyro's "Specific countries" audience and shown in the Inbox).
+    | headers:         request headers that carry the visitor's ISO country code, set by your CDN or
+    |                  reverse proxy. Use [] if you are not behind one (a visitor could fake the header).
+    | database:        optional path to a MaxMind GeoLite2-Country.mmdb (needs `composer require geoip2/geoip2`).
+    | default_country: fallback code for local testing, e.g. WIDGET_GEO_DEFAULT_COUNTRY=BD.
+    */
+    'geo' => [
+        'enabled' => (bool) env('WIDGET_GEO_ENABLED', true),
+        'headers' => array_values(array_filter(array_map('trim', explode(
+            ',',
+            (string) env('WIDGET_GEO_HEADERS', 'CF-IPCountry,CloudFront-Viewer-Country,X-Vercel-IP-Country')
+        )))),
+        'database' => env('WIDGET_GEO_DATABASE'),
+        'default_country' => env('WIDGET_GEO_DEFAULT_COUNTRY'),
+    ],
+
+    /*
+    | Real-time push through Laravel Reverb (WebSockets).
+    | The socket only carries a tiny "something changed" signal (never message text or files);
+    | clients then fetch the real data over the normal authorised HTTP endpoints. Polling stays as a
+    | slow safety net, and takes over again at full speed if the socket drops.
+    | Turns on only when BROADCAST_CONNECTION=reverb AND this switch is true.
+    | public_*: the address the BROWSER connects to (may differ from the server-side REVERB_HOST).
+    */
+    'realtime' => [
+        'enabled' => (bool) env('WIDGET_REALTIME_ENABLED', true),
+        'public_host' => env('REVERB_PUBLIC_HOST', env('REVERB_HOST', 'localhost')),
+        'public_port' => (int) env('REVERB_PUBLIC_PORT', env('REVERB_PORT', 8080)),
+        'public_scheme' => env('REVERB_PUBLIC_SCHEME', env('REVERB_SCHEME', 'http')),
+    ],
+
     // Requests per minute, per visitor session (or IP when there is no session yet).
     'rate_limits' => [
         'asset' => 120,
@@ -38,5 +91,6 @@ return [
         'poll' => 90,
         'send' => 20,
         'identify' => 10,
+        'auth' => 30,
     ],
 ];

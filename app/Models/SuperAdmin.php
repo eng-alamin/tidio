@@ -14,7 +14,7 @@ class SuperAdmin extends Authenticatable
 
     // Use a dedicated 'super_admin' guard in config/auth.php pointing at this model,
     // so platform staff sessions never mix with workspace user (`users`) sessions.
-    protected $fillable = ['name', 'email', 'password', 'role'];
+    protected $fillable = ['name', 'email', 'phone', 'timezone', 'password', 'role'];
 
     protected $hidden = ['password', 'remember_token'];
 

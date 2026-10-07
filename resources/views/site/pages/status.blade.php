@@ -1,0 +1,11 @@
+@extends('layouts.site')
+@section('title', 'Status — Loop')
+
+@push('styles')
+<link rel="stylesheet" href="{{ asset('vendor/public-website/assets/pages-base.css') }}">
+@endpush
+
+@section('content')
+<section class="about-header"><div class="container"><div class="eyebrow">Status</div><h1>All systems operational</h1><p>Live status for the Loop platform.</p></div></section>
+<section class="sec"><div class="container"><div class="glass mb-3"><div class="d-flex justify-content-between"><b>Chat widget</b><span class="pill-ok">Operational</span></div><div class="uptime"><i class="warn"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div><div class="glass mb-3"><div class="d-flex justify-content-between"><b>Inbox and apps</b><span class="pill-ok">Operational</span></div><div class="uptime"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div><div class="glass mb-3"><div class="d-flex justify-content-between"><b>AI agent</b><span class="pill-ok">Operational</span></div><div class="uptime"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="warn"></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div><div class="glass mb-3"><div class="d-flex justify-content-between"><b>Flows</b><span class="pill-ok">Operational</span></div><div class="uptime"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="warn"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div><div class="glass mb-3"><div class="d-flex justify-content-between"><b>API</b><span class="pill-ok">Operational</span></div><div class="uptime"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="warn"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div></div></section>
+@endsection

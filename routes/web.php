@@ -5,6 +5,8 @@ use Illuminate\Support\Facades\Route;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 
+require __DIR__.'/site.php';
+
 Route::get('/login', function () {
     // $user = User::where('email', 'amanda.prohaska@exaxmple.com')->first();
     $user = User::where('email', 'xschmeler@example.com')->first();
@@ -26,9 +28,12 @@ Route::get('/pricing', fn () => view('site.pricing'))->name('pricing');
 Route::get('/register', fn () => view('site.register'))->name('register');
 
 // ---- Tenant app panel (workspace-scoped, needs auth + EnsureBelongsToWorkspace) ----
-Route::middleware(['auth', 'workspace'])->prefix('app')->name('app.')->group(function () {
+Route::middleware(['auth', 'maintenance', 'workspace'])->prefix('app')->name('app.')->group(function () {
     // The public embed script now lives in routes/widget.php (/widget/{key}.js, no login needed).
     Route::get('/widget-preview', \App\Http\Controllers\WidgetPreviewController::class)->name('widget.preview');
+    // Operator download of a message attachment (workspace-scoped inside the controller).
+    Route::get('/attachments/{message}/{attachment}', \App\Http\Controllers\App\AttachmentController::class)
+        ->whereNumber('message')->whereUuid('attachment')->name('attachments.show');
     Route::get('/dashboard', \App\Livewire\App\Dashboard::class)->name('dashboard');
     Route::get('/inbox', \App\Livewire\App\Inbox::class)->name('inbox');
     Route::get('/lyro', \App\Livewire\App\Lyro::class)->name('lyro');
@@ -78,6 +83,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::redirect('/', '/admin/dashboard');
         Route::post('/logout', [\App\Http\Controllers\Admin\AdminAuthController::class, 'logout'])->name('logout');
         Route::get('/dashboard', \App\Livewire\SuperAdmin\Dashboard::class)->name('dashboard');
+        Route::get('/analytics', \App\Livewire\SuperAdmin\Analytics::class)->name('analytics');
+        Route::get('/onboarding', \App\Livewire\SuperAdmin\Onboarding::class)->name('onboarding');
+        Route::get('/settings', \App\Livewire\SuperAdmin\Settings::class)->name('settings');
+        Route::get('/my-profile', \App\Livewire\SuperAdmin\MyProfile::class)->name('my-profile');
         Route::get('/tenants', \App\Livewire\SuperAdmin\Tenants::class)->name('tenants');
         Route::get('/users', \App\Livewire\SuperAdmin\Users::class)->name('users');
         Route::get('/subscriptions', \App\Livewire\SuperAdmin\Subscriptions::class)->name('subscriptions');

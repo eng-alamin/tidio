@@ -15,40 +15,97 @@
         </div>
 
         @if ($tab === 'setup')
-            <div class="steps">
+            @php($setup = $this->setup)
+            {{-- Re-check every 5 s while a data source is still being read, so the step flips to Done by itself. --}}
+            <div class="steps" @if ($setup['syncing'] > 0) wire:poll.5s @endif>
                 <h2 style="margin-top:0">Set up Lyro AI Agent</h2>
 
-                <div class="step {{ $this->dataSources->isNotEmpty() ? 'done' : '' }}">
-                    @if ($this->dataSources->isNotEmpty())
-                        <span class="n"><i class="bi bi-check-lg"></i></span>
+                <div style="display:flex;align-items:center;gap:12px;margin:0 0 14px">
+                    <div class="bar" style="flex:1;margin:0" role="progressbar" aria-valuemin="0" aria-valuemax="{{ $setup['total'] }}" aria-valuenow="{{ $setup['done'] }}" aria-label="Setup progress">
+                        <i style="display:block;height:100%;width:{{ $setup['percent'] }}%;background:var(--ok);border-radius:8px;transition:width .3s"></i>
+                    </div>
+                    <small style="color:var(--soft);white-space:nowrap">{{ $setup['done'] }} of {{ $setup['total'] }} done</small>
+                    @if ($setup['live'])
+                        <span class="pill ok">Live</span>
                     @else
-                        <span class="n">1</span>
-                    @endif
-                    <div><b>Add data sources</b><p>Teach Lyro from your site and files.</p></div>
-                    @if ($this->dataSources->isNotEmpty())
-                        <span class="pill ok">Done</span>
-                    @else
-                        <button type="button" class="btn pri" wire:click="setTab('data-sources')">Start</button>
+                        <span class="pill">Not live</span>
                     @endif
                 </div>
 
-                <div class="step">
-                    <span class="n">2</span>
-                    <div><b>Test in the playground</b><p>Ask a few questions before going live.</p></div>
-                    <button type="button" class="btn pri" wire:click="setTab('playground')">Start</button>
-                </div>
+                @foreach ($setup['steps'] as $i => $step)
+                    <div class="step {{ $step['state'] === 'done' ? 'done' : '' }}" wire:key="setup-step-{{ $step['key'] }}">
+                        <span class="n">
+                            @if ($step['state'] === 'done')
+                                <i class="bi bi-check-lg" aria-hidden="true"></i><span class="sr-only" style="position:absolute;left:-9999px">Done</span>
+                            @else
+                                {{ $i + 1 }}
+                            @endif
+                        </span>
 
-                <div class="step">
-                    <span class="n">3</span>
-                    <div><b>Choose channels</b><p>Turn on live chat and email.</p></div>
-                    <button type="button" class="btn pri" wire:click="setTab('channels')">Start</button>
-                </div>
+                        <div>
+                            <b>{{ $step['title'] }}</b>
+                            <p>{{ $step['detail'] }}</p>
 
-                <div class="step">
-                    <span class="n">4</span>
-                    <div><b>Go live</b><p>Let Lyro answer real customers.</p></div>
-                    <button type="button" class="btn pri" wire:click="setTab('channels')">Start</button>
-                </div>
+                            @if ($step['key'] === 'live' && ! $setup['live'] && $setup['blockers'])
+                                <ul style="margin:8px 0 0;padding-left:18px;color:var(--soft);font-size:13px">
+                                    @foreach ($setup['blockers'] as $blocker)
+                                        <li>{{ $blocker }}</li>
+                                    @endforeach
+                                </ul>
+                            @endif
+                        </div>
+
+                        @if ($step['key'] === 'sources')
+                                @if ($step['state'] === 'done')
+                                    <span class="pill ok">Done</span>
+                                    <button type="button" class="btn" wire:click="setTab('data-sources')">Manage</button>
+                                @elseif ($step['state'] === 'working')
+                                    <span class="pill"><i class="bi bi-arrow-repeat" aria-hidden="true"></i> Syncing…</span>
+                                @elseif ($step['state'] === 'attention')
+                                    <button type="button" class="btn pri" wire:click="setTab('data-sources')">Fix</button>
+                                @else
+                                    <button type="button" class="btn pri" wire:click="setTab('data-sources')">Start</button>
+                                @endif
+                        @elseif ($step['key'] === 'playground')
+                                @if ($step['state'] === 'done')
+                                    <span class="pill ok">Done</span>
+                                    <button type="button" class="btn" wire:click="setTab('playground')">Test again</button>
+                                @else
+                                    <button type="button" class="btn pri" wire:click="setTab('playground')">Start</button>
+                                @endif
+                        @elseif ($step['key'] === 'channels')
+                                @if ($step['state'] === 'done')
+                                    <span class="pill ok">Done</span>
+                                    <button type="button" class="btn" wire:click="setTab('channels')">Review</button>
+                                @elseif ($step['state'] === 'attention')
+                                    <button type="button" class="btn pri" wire:click="setTab('channels')">Fix</button>
+                                @else
+                                    <button type="button" class="btn pri" wire:click="setTab('channels')">Start</button>
+                                @endif
+                        @elseif ($step['key'] === 'live')
+                                @if ($setup['live'])
+                                    <span class="pill ok">Live</span>
+                                    <button type="button" class="btn" wire:click="pauseLyro" wire:confirm="Pause Lyro? Customers will only hear from your team." wire:loading.attr="disabled" wire:target="pauseLyro">Pause</button>
+                                @else
+                                    <button type="button" class="btn pri" wire:click="goLive" wire:loading.attr="disabled" wire:target="goLive" @disabled(! $setup['can_go_live']) @if (! $setup['can_go_live']) title="Finish the steps listed below first" @endif>Go live</button>
+                                @endif
+                        @endif
+                    </div>
+                @endforeach
+
+                @foreach ($setup['warnings'] as $warning)
+                    <p style="display:flex;gap:8px;align-items:flex-start;margin:8px 2px 0;color:var(--soft);font-size:13px">
+                        <i class="bi bi-info-circle" aria-hidden="true" style="margin-top:2px"></i>
+                        <span>
+                            {{ $warning['text'] }}
+                            @if ($warning['route'])
+                                <a href="{{ route($warning['route']) }}"><u>{{ $warning['link'] }}</u></a>
+                            @elseif ($warning['tab'])
+                                <a href="#" wire:click.prevent="setTab('{{ $warning['tab'] }}')"><u>{{ $warning['link'] }}</u></a>
+                            @endif
+                        </span>
+                    </p>
+                @endforeach
             </div>
         @elseif ($tab === 'suggestions')
             <h2 class="sec" style="margin-top:0">Questions Lyro could not answer</h2>
@@ -420,11 +477,24 @@
             @elseif ($configureTab === 'audience')
                 <div class="card" style="max-width:600px">
                     <label style="margin-top:0">Answer for</label>
-                    <select class="f" wire:model="audience_answer_for">
+                    <select class="f" wire:model.live="audience_answer_for">
                         <option value="everyone">Everyone</option>
                         <option value="logged_in">Logged-in customers</option>
                         <option value="specific_countries">Specific countries</option>
                     </select>
+
+                    @if ($audience_answer_for === 'specific_countries')
+                        <label>Countries</label>
+                        <select class="f" wire:model="audience_countries" multiple size="8" aria-label="Countries Lyro answers for">
+                            @foreach ($this->countryOptions as $code => $name)
+                                <option value="{{ $code }}">{{ $name }}</option>
+                            @endforeach
+                        </select>
+                        <small style="color:var(--soft);display:block;margin-top:4px">
+                            Hold Ctrl / Cmd to pick several. Lyro answers only visitors detected in these countries; visitors whose country can't be detected are left to your team.
+                        </small>
+                        @error('audience_countries') <small style="color:var(--bad)">{{ $message }}</small> @enderror
+                    @endif
 
                     <label>Exclude tag</label>
                     <input class="f" wire:model="audience_exclude_tag" placeholder="VIP">
@@ -452,11 +522,11 @@
         <div class="src">
             <div class="card" style="cursor:pointer" wire:click="startAdd('url')">
                 <i class="bi bi-globe"></i>
-                <p><b>Website</b><br><small>Crawl your site URLs</small></p>
+                <p><b>Website</b><br><small>Reads the page and the pages it links to</small></p>
             </div>
             <div class="card" style="cursor:pointer" wire:click="startAdd('pdf')">
                 <i class="bi bi-file-earmark-text"></i>
-                <p><b>Files</b><br><small>PDF, DOCX, TXT</small></p>
+                <p><b>Files</b><br><small>PDF documents</small></p>
             </div>
             <div class="card" style="cursor:pointer" wire:click="startAdd('faq')">
                 <i class="bi bi-question-circle"></i>
@@ -466,25 +536,47 @@
 
         @if ($showAddForm)
             <div class="card" style="max-width:480px">
-                <label style="margin-top:0">
-                    {{ match($addingType) { 'url' => 'Page URL', 'pdf' => 'File name or path', 'faq' => 'Question' } }}
-                </label>
-                <input class="f" wire:model="new_source" placeholder="{{ match($addingType) { 'url' => 'https://yoursite.com/pricing', 'pdf' => 'refund-policy.pdf', 'faq' => 'How do I reset my password?' } }}">
-                @error('new_source') <small style="color:var(--bad)">{{ $message }}</small> @enderror
+                @if ($addingType === 'pdf')
+                    <label style="margin-top:0">PDF file</label>
+                    <input class="f" type="file" wire:model="pdf_upload" accept="application/pdf,.pdf">
+                    <div wire:loading wire:target="pdf_upload" style="color:var(--soft);font-size:13px;margin-top:6px">Uploading…</div>
+                    @error('pdf_upload') <small style="color:var(--bad)">{{ $message }}</small> @enderror
+                    <small style="display:block;margin-top:6px;color:var(--soft)">Up to 10 MB. Scanned pages (pictures of text) can't be read.</small>
+                @else
+                    <label style="margin-top:0">
+                        {{ match($addingType) { 'url' => 'Page URL', 'faq' => 'Question' } }}
+                    </label>
+                    <input class="f" wire:model="new_source" placeholder="{{ match($addingType) { 'url' => 'https://yoursite.com/pricing', 'faq' => 'How do I reset my password?' } }}">
+                    @error('new_source') <small style="color:var(--bad)">{{ $message }}</small> @enderror
+                    @if ($addingType === 'url')
+                        <small style="display:block;margin-top:6px;color:var(--soft)">Lyro reads this page and the pages of the same website it links to. A link straight to a PDF works too.</small>
+                    @endif
+                @endif
 
                 <div style="margin-top:14px;display:flex;gap:8px">
-                    <button type="button" class="btn pri" wire:click="addSource">Add source</button>
+                    <button type="button" class="btn pri" wire:click="addSource" wire:loading.attr="disabled" wire:target="addSource,pdf_upload">Add source</button>
                     <button type="button" class="btn" wire:click="cancelAdd">Cancel</button>
                 </div>
             </div>
         @endif
 
-        <div class="card" style="padding:0">
+        <div class="card" style="padding:0" @if ($this->dataSources->contains(fn ($s) => in_array($s->status->value, ['pending', 'syncing'], true))) wire:poll.3s @endif>
             <table>
                 <tr><th>Source</th><th>Type</th><th>Status</th><th>Added</th><th></th></tr>
                 @forelse ($this->dataSources as $source)
                     <tr wire:key="source-{{ $source->id }}">
-                        <td>{{ $source->source }}</td>
+                        <td>
+                            {{ $source->title ?: $source->source }}
+                            @if ($source->title && $source->title !== $source->source)
+                                <br><small style="color:var(--soft)">{{ \Illuminate\Support\Str::limit($source->source, 60) }}</small>
+                            @endif
+                            @if ($source->pages_count > 1)
+                                <br><small style="color:var(--soft)">{{ $source->pages_count }} pages read</small>
+                            @endif
+                            @if ($source->status->value === 'failed' && $source->error)
+                                <br><small style="color:var(--bad)">{{ $source->error }}</small>
+                            @endif
+                        </td>
                         <td>{{ match($source->type->value) { 'url' => 'Website', 'pdf' => 'File', 'faq' => 'Q&A', 'help_center' => 'Help center' } }}</td>
                         <td>
                             <span class="pill {{ $source->status->value === 'synced' ? 'ok' : '' }}">
@@ -492,7 +584,12 @@
                             </span>
                         </td>
                         <td>{{ $source->created_at->format('M j') }}</td>
-                        <td><button type="button" class="ib" wire:click="deleteSource({{ $source->id }})" aria-label="Remove source"><i class="bi bi-trash"></i></button></td>
+                        <td style="white-space:nowrap">
+                            @if ($source->type->value !== 'faq')
+                                <button type="button" class="ib" wire:click="resyncSource({{ $source->id }})" aria-label="Read again" title="Read again" @disabled($source->status->value === 'syncing')><i class="bi bi-arrow-clockwise"></i></button>
+                            @endif
+                            <button type="button" class="ib" wire:click="deleteSource({{ $source->id }})" aria-label="Remove source"><i class="bi bi-trash"></i></button>
+                        </td>
                     </tr>
                 @empty
                     <tr><td colspan="5" style="color:var(--soft)">No data sources yet — add one above.</td></tr>

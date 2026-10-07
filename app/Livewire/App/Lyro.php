@@ -5,29 +5,32 @@ namespace App\Livewire\App;
 use App\Enums\AiActionType;
 use App\Enums\AiDataSourceStatus;
 use App\Enums\AiDataSourceType;
+use App\Jobs\SyncDataSource;
 use App\Models\AiAction;
 use App\Models\AiAgentSetting;
 use App\Models\AiDataSource;
 use App\Models\AiProactiveRole;
 use App\Models\AiProcedure;
 use App\Models\AiUnansweredQuestion;
+use App\Services\Lyro\LyroSetupService;
 use App\Services\LyroAiEngine;
+use App\Support\Countries;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
+use Livewire\WithFileUploads;
+use RuntimeException;
 
 class Lyro extends Component
 {
+    use WithFileUploads;
+
     /**
-     * Which sub-tab is active. 'data-sources', 'setup', 'suggestions',
-     * 'guidance', 'handoff', 'actions' and 'procedures' are real, working
-     * tabs; the rest of Loop's Lyro AI Agent section (MCPs, Proactive roles,
-     * Playground, Channels, Configure) is still the static prototype — those
-     * links stay plain <a data-toast> until built, same as Settings did
-     * before each of its pages was converted one at a time.
+     * Which sub-tab is active. Opens on 'setup', the first tab, which shows the
+     * live 4-step checklist (see LyroSetupService). Every tab is a real, working page.
      */
-    public string $tab = 'data-sources';
+    public string $tab = 'setup';
 
     public bool $showRoleForm = false;
 
@@ -65,6 +68,9 @@ class Lyro extends Component
 
     public string $audience_exclude_tag = '';
 
+    /** ISO alpha-2 codes Lyro answers for when audience_answer_for = "specific_countries". */
+    public array $audience_countries = [];
+
     public bool $copilot_suggest_replies = true;
 
     public bool $copilot_summarize = true;
@@ -72,6 +78,9 @@ class Lyro extends Component
     public bool $showAddForm = false;
 
     public ?string $addingType = null; // 'url' | 'pdf' | 'faq'
+
+    /** @var \Livewire\Features\SupportFileUploads\TemporaryUploadedFile|null  PDF chosen in the Files form */
+    public $pdf_upload = null;
 
     public string $new_source = '';
 
@@ -122,6 +131,13 @@ class Lyro extends Component
 
         if ($setting) {
             $this->tone = $setting->tone;
+            $this->agent_name = (string) ($setting->agent_name ?: 'Lyro');
+            $this->default_language = (string) ($setting->default_language ?: 'auto');
+            $this->audience_answer_for = (string) ($setting->audience_answer_for ?: 'everyone');
+            $this->audience_exclude_tag = (string) $setting->audience_exclude_tag;
+            $this->audience_countries = Countries::clean((array) ($setting->audience_countries ?? []));
+            $this->copilot_suggest_replies = (bool) $setting->copilot_suggest_replies;
+            $this->copilot_summarize = (bool) $setting->copilot_summarize;
             $this->instructions = (string) $setting->guidance_instructions;
 
             $rules = $setting->handoff_rules ?? [];
@@ -139,10 +155,50 @@ class Lyro extends Component
 
     protected function rules(): array
     {
-        return [
-            'new_source' => ['required', 'string', 'max:255'],
-            'addingType' => ['required', Rule::in(['url', 'pdf', 'faq'])],
-        ];
+        $rules = ['addingType' => ['required', Rule::in(['url', 'pdf', 'faq'])]];
+
+        if ($this->addingType === 'pdf') {
+            // Files are uploaded (PDF only for now); a link to a PDF can be added as a Website source.
+            $rules['pdf_upload'] = ['required', 'file', 'mimes:pdf', 'max:10240']; // 10 MB
+        } elseif ($this->addingType === 'url') {
+            $rules['new_source'] = ['required', 'string', 'max:255', 'url:http,https'];
+        } else {
+            $rules['new_source'] = ['required', 'string', 'max:255'];
+        }
+
+        return $rules;
+    }
+
+    // ---- Setup checklist (state is computed from the database — see LyroSetupService) ----
+
+    /** @return array<string, mixed> steps, progress, blockers and warnings for the Setup tab. */
+    #[Computed]
+    public function setup(): array
+    {
+        return app(LyroSetupService::class)->overview(app('currentWorkspace'));
+    }
+
+    public function goLive(LyroSetupService $service): void
+    {
+        try {
+            $service->goLive(app('currentWorkspace'));
+        } catch (RuntimeException $e) {
+            unset($this->setup);
+            $this->dispatch('toast', message: $e->getMessage(), type: 'err');
+
+            return;
+        }
+
+        unset($this->setup);
+        $this->dispatch('toast', message: 'Lyro is live and will now answer customers.');
+    }
+
+    public function pauseLyro(LyroSetupService $service): void
+    {
+        $service->pause(app('currentWorkspace'));
+
+        unset($this->setup);
+        $this->dispatch('toast', message: 'Lyro paused. Customers will only hear from your team.');
     }
 
     public function setTab(string $tab): void
@@ -153,6 +209,91 @@ class Lyro extends Component
     public function setActionsTab(string $tab): void
     {
         $this->actionsTab = in_array($tab, ['actions', 'mcps'], true) ? $tab : 'actions';
+    }
+
+    // ---- Configure: General / Audience / Copilot ----
+
+    public function setConfigureTab(string $tab): void
+    {
+        $this->configureTab = in_array($tab, ['general', 'audience', 'copilot'], true) ? $tab : 'general';
+    }
+
+    public function saveConfigureGeneral(): void
+    {
+        $this->validate([
+            'agent_name' => ['required', 'string', 'max:60'],
+            'default_language' => ['required', Rule::in(['auto', 'en', 'bn'])],
+            'tone' => ['required', Rule::in(['friendly', 'professional', 'playful'])],
+        ]);
+
+        AiAgentSetting::updateOrCreate(
+            ['workspace_id' => app('currentWorkspace')->id],
+            ['agent_name' => trim($this->agent_name), 'default_language' => $this->default_language, 'tone' => $this->tone]
+        );
+
+        activity('lyro')->event('updated')->withProperties(['section' => 'general'])->log('Lyro general settings saved');
+
+        $this->dispatch('toast', message: 'General settings saved.');
+    }
+
+    public function saveAudience(): void
+    {
+        $this->validate([
+            'audience_answer_for' => ['required', Rule::in(['everyone', 'logged_in', 'specific_countries'])],
+            'audience_exclude_tag' => ['nullable', 'string', 'max:60'],
+            'audience_countries' => ['array', 'max:250'],
+            'audience_countries.*' => ['string', Rule::in(array_keys(Countries::all()))],
+        ]);
+
+        $countries = Countries::clean($this->audience_countries);
+
+        if ($this->audience_answer_for === 'specific_countries' && $countries === []) {
+            $this->addError('audience_countries', 'Pick at least one country, or Lyro will not answer anyone.');
+
+            return;
+        }
+
+        AiAgentSetting::updateOrCreate(
+            ['workspace_id' => app('currentWorkspace')->id],
+            [
+                'audience_answer_for' => $this->audience_answer_for,
+                'audience_exclude_tag' => trim($this->audience_exclude_tag) ?: null,
+                'audience_countries' => $countries ?: null,
+            ]
+        );
+
+        $this->audience_countries = $countries;
+
+        activity('lyro')->event('updated')->withProperties(['section' => 'audience'])->log('Lyro audience saved');
+
+        $this->dispatch('toast', message: 'Audience saved.');
+    }
+
+    public function updatedCopilotSuggestReplies(): void
+    {
+        $this->saveCopilot();
+    }
+
+    public function updatedCopilotSummarize(): void
+    {
+        $this->saveCopilot();
+    }
+
+    private function saveCopilot(): void
+    {
+        AiAgentSetting::updateOrCreate(
+            ['workspace_id' => app('currentWorkspace')->id],
+            ['copilot_suggest_replies' => $this->copilot_suggest_replies, 'copilot_summarize' => $this->copilot_summarize]
+        );
+
+        $this->dispatch('toast', message: 'Copilot settings updated.');
+    }
+
+    /** code => name, for the country picker. */
+    #[Computed]
+    public function countryOptions(): array
+    {
+        return Countries::all();
     }
 
     public function setChannelsTab(string $tab): void
@@ -489,7 +630,7 @@ class Lyro extends Component
             ->where('status', AiDataSourceStatus::Synced)
             ->latest()
             ->limit(5)
-            ->get();
+            ->get(AiDataSource::LIST_COLUMNS);
     }
 
     public function sendTestMessage(LyroAiEngine $engine): void
@@ -510,6 +651,13 @@ class Lyro extends Component
         );
 
         $this->playgroundMessages[] = ['from' => 'bot', 'text' => $reply];
+
+        // Only a real AI answer counts as "tested" for the Setup checklist — not the
+        // "engine not connected" placeholder and not an API error message.
+        if ($engine->isAvailable() && ! str_starts_with($reply, LyroAiEngine::REPLY_FAILED_PREFIX)) {
+            app(LyroSetupService::class)->markPlaygroundTested(app('currentWorkspace'));
+            unset($this->setup);
+        }
     }
 
     public function clearPlayground(): void
@@ -633,6 +781,7 @@ class Lyro extends Component
     {
         $this->addingType = in_array($type, ['url', 'pdf', 'faq'], true) ? $type : 'url';
         $this->new_source = '';
+        $this->pdf_upload = null;
         $this->showAddForm = true;
         $this->resetValidation();
     }
@@ -642,25 +791,74 @@ class Lyro extends Component
         $this->showAddForm = false;
         $this->addingType = null;
         $this->new_source = '';
+        $this->pdf_upload = null;
     }
 
     public function addSource(): void
     {
         $this->validate();
 
-        AiDataSource::create([
-            'workspace_id' => app('currentWorkspace')->id,
-            'type' => AiDataSourceType::from($this->addingType),
-            'source' => $this->new_source,
-            // Real crawling/parsing/embedding isn't built — new sources land as
-            // "pending" (matches the enum's default) rather than faking "Ready".
-            'status' => AiDataSourceStatus::Pending,
-        ]);
+        $workspaceId = app('currentWorkspace')->id;
+        $type = AiDataSourceType::from($this->addingType);
+
+        if ($type === AiDataSourceType::Pdf) {
+            // Kept on the private disk (never publicly reachable); `source` is just the display name.
+            $path = $this->pdf_upload->store("ai-sources/{$workspaceId}", 'local');
+
+            $source = AiDataSource::create([
+                'workspace_id' => $workspaceId,
+                'type' => $type,
+                'source' => mb_substr($this->pdf_upload->getClientOriginalName(), 0, 255),
+                'file_path' => $path,
+                'status' => AiDataSourceStatus::Pending,
+            ]);
+        } else {
+            $address = trim($this->new_source);
+
+            // Adding the same address twice just reads it again instead of making a duplicate.
+            $source = $type === AiDataSourceType::Url
+                ? AiDataSource::query()->where('workspace_id', $workspaceId)->where('type', $type->value)->where('source', $address)->first()
+                : null;
+
+            $source ??= AiDataSource::create([
+                'workspace_id' => $workspaceId,
+                'type' => $type,
+                'source' => $address,
+                'status' => AiDataSourceStatus::Pending,
+            ]);
+        }
 
         unset($this->dataSources);
         $this->cancelAdd();
 
-        $this->dispatch('toast', message: 'Data source added — pending processing.');
+        if ($type === AiDataSourceType::Faq) {
+            $this->dispatch('toast', message: 'Data source added.');
+
+            return;
+        }
+
+        $source->forceFill(['status' => AiDataSourceStatus::Pending, 'error' => null])->save();
+        SyncDataSource::start($source->id); // reads the site / PDF right after this response
+
+        $this->dispatch('toast', message: 'Data source added — Lyro is reading it now.');
+    }
+
+    public function resyncSource(int $id): void
+    {
+        $source = AiDataSource::where('workspace_id', app('currentWorkspace')->id)
+            ->whereIn('type', [AiDataSourceType::Url->value, AiDataSourceType::Pdf->value, AiDataSourceType::HelpCenter->value])
+            ->find($id);
+
+        if (! $source || $source->status === AiDataSourceStatus::Syncing) {
+            return;
+        }
+
+        $source->forceFill(['status' => AiDataSourceStatus::Pending, 'error' => null])->save();
+        unset($this->dataSources);
+
+        SyncDataSource::start($source->id);
+
+        $this->dispatch('toast', message: 'Reading it again…');
     }
 
     public function deleteSource(int $id): void
@@ -674,9 +872,10 @@ class Lyro extends Component
     #[Computed]
     public function dataSources(): Collection
     {
+        // Without `content` (can be hundreds of KB per source) — the list never needs it.
         return AiDataSource::where('workspace_id', app('currentWorkspace')->id)
             ->latest()
-            ->get();
+            ->get(AiDataSource::LIST_COLUMNS);
     }
 
     public function render()

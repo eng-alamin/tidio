@@ -10,3 +10,6 @@ Artisan::command('inspire', function () {
 
 // Visitors who closed the tab stop sending heartbeats; this flips them to "offline".
 Schedule::command('widget:mark-offline')->everyMinute()->withoutOverlapping();
+
+// One MRR data point per day for the Super Admin revenue trend chart.
+Schedule::command('mrr:snapshot')->dailyAt('00:05')->withoutOverlapping();

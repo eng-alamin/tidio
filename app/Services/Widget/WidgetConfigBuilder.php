@@ -5,6 +5,7 @@ namespace App\Services\Widget;
 use App\Models\OperatingHour;
 use App\Models\WidgetTranslation;
 use App\Models\Website;
+use App\Services\AttachmentService;
 use Carbon\CarbonImmutable;
 
 /**
@@ -14,6 +15,10 @@ use Carbon\CarbonImmutable;
 class WidgetConfigBuilder
 {
     private const DEFAULT_HEADER = 'Chat with us';
+
+    public function __construct(private readonly AttachmentService $attachments)
+    {
+    }
 
     /** Colour, position and key — the only things the loader (on the customer's page) needs. */
     public function loader(Website $website): array
@@ -65,6 +70,12 @@ class WidgetConfigBuilder
             'solved_notice' => 'This conversation was marked as solved. Send a message to start a new one.',
             'error_generic' => 'Something went wrong. Please try again.',
             'unavailable' => 'Chat is not available right now.',
+            'attach' => 'Attach a file',
+            'remove_file' => 'Remove',
+            'file_too_big' => 'That file is too large.',
+            'file_type' => 'That file type is not supported.',
+            'file_too_many' => 'You can attach fewer files at once.',
+            'limit_reached' => 'We cannot start a new chat right now. Please email us instead.',
         ], $stored);
 
         $strings['header'] = $header;
@@ -75,6 +86,12 @@ class WidgetConfigBuilder
             'welcome_message' => $setting?->welcome_message ?: 'Hi! How can we help you today?',
             'online' => $online,
             'max_length' => (int) config('widget.message_max_length'),
+            'attachments' => [
+                'enabled' => $this->attachments->enabled(),
+                'max_files' => $this->attachments->maxFiles(),
+                'max_kb' => $this->attachments->maxKb(),
+                'accept' => $this->attachments->acceptAttribute(),
+            ],
             'strings' => $strings,
         ];
     }

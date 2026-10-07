@@ -13,7 +13,7 @@ class Visitor extends Model
 
     protected $fillable = [
         'workspace_id', 'contact_id', 'session_id', 'ip_address', 'browser', 'os',
-        'location', 'current_page', 'is_online', 'first_seen_at', 'last_seen_at',
+        'location', 'country_code', 'current_page', 'is_online', 'first_seen_at', 'last_seen_at',
     ];
 
     protected $casts = [

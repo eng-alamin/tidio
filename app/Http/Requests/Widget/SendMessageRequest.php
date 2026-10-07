@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Widget;
 
+use App\Services\AttachmentService;
 use Illuminate\Foundation\Http\FormRequest;
 
 class SendMessageRequest extends FormRequest
@@ -26,8 +27,9 @@ class SendMessageRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'body' => ['required', 'string', 'max:'.(int) config('widget.message_max_length')],
+            // A message may be files only, but never completely empty.
+            'body' => ['nullable', 'required_without:files', 'string', 'max:'.(int) config('widget.message_max_length')],
             'page_url' => ['nullable', 'string', 'max:2048'],
-        ];
+        ] + app(AttachmentService::class)->rules('files');
     }
 }

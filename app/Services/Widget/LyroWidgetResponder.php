@@ -13,6 +13,7 @@ use App\Models\Conversation;
 use App\Models\Message;
 use App\Services\LyroAiEngine;
 use App\Services\UsageLimiter;
+use App\Support\Countries;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -79,6 +80,11 @@ class LyroWidgetResponder
             || $message->sender_type !== MessageSenderType::Visitor
             || $message->is_private_note
             || ! $message->conversation) {
+            return null;
+        }
+
+        // A message that is only a file has nothing for the AI to read — leave it to the team.
+        if (trim((string) $message->body) === '') {
             return null;
         }
 
@@ -207,12 +213,18 @@ class LyroWidgetResponder
     {
         $contactId = $conversation->contact_id ?? $conversation->visitor?->contact_id;
 
-        // There is no country data for visitors yet, so "specific countries" can't be honoured:
-        // stay silent rather than answer people the owner meant to exclude.
         $answerFor = $setting->audience_answer_for ?: 'everyone';
 
         if ($answerFor === 'specific_countries') {
-            return false;
+            // Answer only visitors whose detected country is on the list. An empty list, or a
+            // visitor whose country is unknown, stays silent rather than answer someone the
+            // owner meant to exclude.
+            $allowed = Countries::clean((array) ($setting->audience_countries ?? []));
+            $country = strtoupper((string) $conversation->visitor?->country_code);
+
+            if ($allowed === [] || $country === '' || ! in_array($country, $allowed, true)) {
+                return false;
+            }
         }
 
         if ($answerFor === 'logged_in' && $contactId === null) {

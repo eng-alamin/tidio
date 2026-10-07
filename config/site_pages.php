@@ -1,0 +1,42 @@
+<?php
+
+// Slugs served by StaticPageController from resources/views/site/pages/{slug}.blade.php.
+// Add a slug here after converting another static page.
+return [
+    'static' => [
+        'about',
+        'ai-agent-product-recommendations',
+        'ai-agent',
+        'ai-playground',
+        'custom-ai-agents',
+        'developers',
+        'ebooks',
+        'features',
+        'flows',
+        'help-center',
+        'help-desk',
+        'industry-ecommerce',
+        'industry-education',
+        'industry-finance',
+        'industry-saas',
+        'industry-services',
+        'industry-travel',
+        'live-chat',
+        'mobile-sdk',
+        'partners',
+        'premium',
+        'privacy-policy',
+        'resources',
+        'roadmap',
+        'roi-calculator',
+        'security',
+        'sitemap',
+        'solution-customer-service',
+        'solution-marketing-sales',
+        'status',
+        'terms',
+        'trust',
+        'updates',
+        'watch-demo',
+    ],
+];

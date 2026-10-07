@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f3f5fb">
+<meta name="csrf-token" content="{{ csrf_token() }}">
 <title>{{ $title ?? 'Dashboard' }} · Loop</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -72,6 +73,43 @@
 <script src="{{ asset('vendor/app-panel/app.js') }}"></script>
 <script src="{{ asset('vendor/app-panel/ui.js') }}"></script>
 @livewireScripts
+@php
+    // Real-time (Reverb): the operator panel listens on the workspace's private channel. Off => polling only.
+    $rtConfig = app(\App\Services\Realtime\RealtimeConfig::class);
+    $rtWorkspace = app()->bound('currentWorkspace') ? app('currentWorkspace') : null;
+@endphp
+@if ($rtConfig->enabled() && $rtWorkspace && auth()->check())
+<script src="{{ asset('vendor/realtime/loop-realtime.js') }}"></script>
+<script>
+(function () {
+    var cfg = @json($rtConfig->client());
+    var channel = 'private-{{ $rtConfig->workspaceChannel($rtWorkspace->id) }}';
+    var timer = null;
+
+    var client = LoopRealtime.connect({
+        key: cfg.key, host: cfg.host, port: cfg.port, scheme: cfg.scheme,
+        authEndpoint: @json(url('/broadcasting/auth')),
+        authHeaders: function () {
+            var m = document.querySelector('meta[name="csrf-token"]');
+            return m ? { 'X-CSRF-TOKEN': m.content, 'X-Requested-With': 'XMLHttpRequest' } : {};
+        },
+        credentials: 'same-origin',
+        onState: function (up) { if (up) { fire(); } } // refresh once after (re)connecting: we may have missed pushes
+    });
+
+    // Many signals in a burst (a long message thread) become one refresh.
+    function fire() {
+        clearTimeout(timer);
+        timer = setTimeout(function () {
+            if (window.Livewire && Livewire.dispatch) { Livewire.dispatch('inbox-signal'); }
+            document.dispatchEvent(new CustomEvent('loop:conversation-signal'));
+        }, 250);
+    }
+
+    client.subscribe(channel, { 'conversation.signal': fire });
+})();
+</script>
+@endif
 @stack('scripts')
 </body>
 </html>

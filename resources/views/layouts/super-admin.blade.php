@@ -1,10 +1,13 @@
+@php
+    $platformName = app(\App\Services\SuperAdmin\PlatformSettingsService::class)->platformName();
+@endphp
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="csrf-token" content="{{ csrf_token() }}">
-<title>Loop — {{ $title ?? 'Super Admin' }}</title>
+<title>{{ $platformName }} — {{ $title ?? 'Super Admin' }}</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -27,14 +30,14 @@
 <div class="sidebar-scrim" id="sidebarScrim"></div>
 <div class="app-shell">
   <nav class="sidebar" id="sidebar" aria-label="Main navigation">
-    <a href="{{ route('admin.dashboard') }}" class="brand"><span class="dot" aria-hidden="true"></span> Loop</a>
+    <a href="{{ route('admin.dashboard') }}" class="brand"><span class="dot" aria-hidden="true"></span> {{ $platformName }}</a>
     <div class="nav-scroll">
       <div class="nav-section-label">Overview</div>
       <a class="nav-item {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}" @if(request()->routeIs('admin.dashboard')) aria-current="page" @endif><i class="bi bi-grid-1x2-fill" aria-hidden="true"></i> Dashboard</a>
-      <a class="nav-item" href="#" data-toast="Analytics is coming soon."><i class="bi bi-bar-chart-line-fill" aria-hidden="true"></i> Analytics</a>
+      <a class="nav-item {{ request()->routeIs('admin.analytics') ? 'active' : '' }}" href="{{ route('admin.analytics') }}" @if(request()->routeIs('admin.analytics')) aria-current="page" @endif><i class="bi bi-bar-chart-line-fill" aria-hidden="true"></i> Analytics</a>
       <div class="nav-section-label">Platform</div>
       <a class="nav-item {{ request()->routeIs('admin.tenants') ? 'active' : '' }}" href="{{ route('admin.tenants') }}" @if(request()->routeIs('admin.tenants')) aria-current="page" @endif><i class="bi bi-buildings-fill" aria-hidden="true"></i> Tenants</a>
-      <a class="nav-item" href="#" data-toast="Onboarding is coming soon."><i class="bi bi-list-check" aria-hidden="true"></i> Onboarding</a>
+      <a class="nav-item {{ request()->routeIs('admin.onboarding') ? 'active' : '' }}" href="{{ route('admin.onboarding') }}" @if(request()->routeIs('admin.onboarding')) aria-current="page" @endif><i class="bi bi-list-check" aria-hidden="true"></i> Onboarding</a>
       <a class="nav-item {{ request()->routeIs('admin.users') ? 'active' : '' }}" href="{{ route('admin.users') }}" @if(request()->routeIs('admin.users')) aria-current="page" @endif><i class="bi bi-people-fill" aria-hidden="true"></i> Users</a>
       <a class="nav-item {{ request()->routeIs('admin.subscriptions') ? 'active' : '' }}" href="{{ route('admin.subscriptions') }}" @if(request()->routeIs('admin.subscriptions')) aria-current="page" @endif><i class="bi bi-credit-card-2-front-fill" aria-hidden="true"></i> Subscriptions</a>
       <a class="nav-item {{ request()->routeIs('admin.billing') ? 'active' : '' }}" href="{{ route('admin.billing') }}" @if(request()->routeIs('admin.billing')) aria-current="page" @endif><i class="bi bi-receipt" aria-hidden="true"></i> Billing &amp; Invoices</a>
@@ -51,7 +54,9 @@
       <div class="nav-section-label">System</div>
       <a class="nav-item {{ request()->routeIs('admin.activity-log') ? 'active' : '' }}" href="{{ route('admin.activity-log') }}" @if(request()->routeIs('admin.activity-log')) aria-current="page" @endif><i class="bi bi-terminal-fill" aria-hidden="true"></i> Activity &amp; Audit Log</a>
       <a class="nav-item {{ request()->routeIs('admin.notifications') ? 'active' : '' }}" href="{{ route('admin.notifications') }}" @if(request()->routeIs('admin.notifications')) aria-current="page" @endif><i class="bi bi-bell-fill" aria-hidden="true"></i> Notifications</a>
-      <a class="nav-item" href="#" data-toast="Settings is coming soon."><i class="bi bi-gear-fill" aria-hidden="true"></i> Settings</a>
+      @if ($admin->role === \App\Enums\SuperAdminRole::SuperAdmin)
+      <a class="nav-item {{ request()->routeIs('admin.settings') ? 'active' : '' }}" href="{{ route('admin.settings') }}" @if(request()->routeIs('admin.settings')) aria-current="page" @endif><i class="bi bi-gear-fill" aria-hidden="true"></i> Settings</a>
+      @endif
       <div class="sidebar-foot">
         <form method="POST" action="{{ route('admin.logout') }}">
           @csrf
@@ -80,6 +85,7 @@
           </button>
           <div class="dropdown-panel wide" id="avatarPanel" role="menu">
             <div class="dd-header">{{ $admin->email }}</div>
+            <a href="{{ route('admin.my-profile') }}" class="dd-item" role="menuitem"><i class="bi bi-person-circle" aria-hidden="true"></i><span class="t">My profile</span></a>
             <form method="POST" action="{{ route('admin.logout') }}">
               @csrf
               <button type="submit" class="dd-item" role="menuitem"><i class="bi bi-box-arrow-right" aria-hidden="true"></i><span class="t">Log out</span></button>

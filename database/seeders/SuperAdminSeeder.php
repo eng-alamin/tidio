@@ -26,9 +26,9 @@ class SuperAdminSeeder extends Seeder
         }
 
         $accounts = [
-            ['name' => 'Super Admin', 'email' => 'super@tidio-clone.test', 'role' => SuperAdminRole::SuperAdmin],
-            ['name' => 'Billing Admin', 'email' => 'billing@tidio-clone.test', 'role' => SuperAdminRole::BillingAdmin],
-            ['name' => 'Support Staff', 'email' => 'support@tidio-clone.test', 'role' => SuperAdminRole::SupportStaff],
+            ['name' => 'Super Admin', 'email' => 'super@loop.com', 'role' => SuperAdminRole::SuperAdmin],
+            ['name' => 'Billing Admin', 'email' => 'billing@loop.com', 'role' => SuperAdminRole::BillingAdmin],
+            ['name' => 'Support Staff', 'email' => 'support@loop.com', 'role' => SuperAdminRole::SupportStaff],
         ];
 
         foreach ($accounts as $account) {

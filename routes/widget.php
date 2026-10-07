@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Widget\WidgetAttachmentController;
+use App\Http\Controllers\Widget\WidgetBroadcastAuthController;
 use App\Http\Controllers\Widget\WidgetFrameController;
 use App\Http\Controllers\Widget\WidgetMessageController;
 use App\Http\Controllers\Widget\WidgetSessionController;
@@ -43,5 +45,17 @@ Route::prefix('widget-api/{widgetKey}')
             Route::post('identify', [WidgetSessionController::class, 'identify'])
                 ->middleware('throttle:widget-identify')
                 ->name('identify');
+
+            // Real-time (Reverb) channel authorisation for the visitor's own private channel.
+            Route::post('broadcasting/auth', WidgetBroadcastAuthController::class)
+                ->middleware('throttle:widget-auth')
+                ->name('broadcast-auth');
         });
     });
+
+// 4. Attachment download for visitors. Signed + expiring URL (an <img> can't send the session header).
+Route::get('/widget-attachments/{message}/{attachment}', WidgetAttachmentController::class)
+    ->middleware(['throttle:widget-asset', 'signed'])
+    ->whereNumber('message')
+    ->whereUuid('attachment')
+    ->name('widget.attachments.show');

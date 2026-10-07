@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Services\AttachmentService;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreMessageRequest extends FormRequest
@@ -15,11 +16,9 @@ class StoreMessageRequest extends FormRequest
     {
         return [
             'body' => ['required_without:attachments', 'nullable', 'string', 'max:10000'],
-            'attachments' => ['nullable', 'array', 'max:5'],
-            'attachments.*' => ['file', 'max:10240'], // 10MB each
             'is_private_note' => ['sometimes', 'boolean'],
             'mentioned_user_ids' => ['sometimes', 'array'],
             'mentioned_user_ids.*' => ['exists:users,id'],
-        ];
+        ] + app(AttachmentService::class)->rules('attachments'); // allowed types, count and size come from config/widget.php
     }
 }

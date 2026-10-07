@@ -7,6 +7,7 @@ use App\Enums\ConversationPriority;
 use App\Enums\ConversationStatus;
 use App\Enums\ConversationType;
 use App\Enums\MessageSenderType;
+use App\Exceptions\ConversationLimitReached;
 use App\Jobs\ReplyWithLyro;
 use App\Models\AiAgentSetting;
 use App\Models\Contact;
@@ -15,10 +16,15 @@ use App\Models\Message;
 use App\Models\User;
 use App\Models\Visitor;
 use App\Models\Website;
+use App\Models\Workspace;
+use App\Services\AttachmentService;
+use App\Services\UsageLimiter;
+use App\Support\Countries;
 use App\Support\UserAgentSummary;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -33,6 +39,12 @@ class WidgetChatService
     /** Don't write to `visitors` on every 3-second poll — only when something meaningful changed. */
     private const HEARTBEAT_SECONDS = 30;
 
+    public function __construct(
+        private readonly UsageLimiter $usage,
+        private readonly AttachmentService $attachments,
+    ) {
+    }
+
     // ------------------------------------------------------------------ sessions
 
     public function startOrResumeSession(
@@ -41,6 +53,7 @@ class WidgetChatService
         ?string $ip,
         ?string $userAgent,
         ?string $pageUrl,
+        ?string $countryCode = null,
     ): Visitor {
         $visitor = null;
 
@@ -51,8 +64,11 @@ class WidgetChatService
                 ->first();
         }
 
+        $countryCode = Countries::has($countryCode) ? strtoupper((string) $countryCode) : null;
+
         if ($visitor) {
             $this->touch($visitor, $pageUrl);
+            $this->rememberCountry($visitor, $countryCode);
 
             return $visitor;
         }
@@ -64,6 +80,8 @@ class WidgetChatService
                 'workspace_id' => $website->workspace_id,
                 'session_id' => (string) Str::uuid(), // server-issued: it doubles as the visitor's bearer token
                 'ip_address' => $ip,
+                'country_code' => $countryCode,
+                'location' => Countries::name($countryCode),
                 'browser' => UserAgentSummary::browser($userAgent),
                 'os' => UserAgentSummary::os($userAgent),
                 'current_page' => $this->cleanUrl($pageUrl),
@@ -86,6 +104,19 @@ class WidgetChatService
         }
 
         return $visitor;
+    }
+
+    /** Saves the detected country when it is new or changed (e.g. the visitor switched VPN). */
+    private function rememberCountry(Visitor $visitor, ?string $countryCode): void
+    {
+        if ($countryCode === null || $visitor->country_code === $countryCode) {
+            return;
+        }
+
+        $visitor->update([
+            'country_code' => $countryCode,
+            'location' => Countries::name($countryCode),
+        ]);
     }
 
     /** Heartbeat: keeps the visitor "online" and their current page fresh, with minimal writes. */
@@ -158,8 +189,15 @@ class WidgetChatService
 
     // ------------------------------------------------------------------ writing
 
-    public function sendVisitorMessage(Visitor $visitor, string $body, ?string $pageUrl = null): array
+    /**
+     * @param  array<int, \Illuminate\Http\UploadedFile>  $files  already validated by SendMessageRequest
+     *
+     * @throws ConversationLimitReached when a NEW conversation is needed but the plan's monthly limit is used up
+     */
+    public function sendVisitorMessage(Visitor $visitor, ?string $body, ?string $pageUrl = null, array $files = []): array
     {
+        $stored = [];
+
         DB::beginTransaction();
 
         try {
@@ -170,6 +208,8 @@ class WidgetChatService
             $conversation = $this->activeConversation($visitor);
 
             if (! $conversation) {
+                $this->guardConversationLimit($visitor->workspace_id);
+
                 $conversation = Conversation::create([
                     'workspace_id' => $visitor->workspace_id,
                     'channel_type' => ConversationChannelType::Widget,
@@ -190,10 +230,15 @@ class WidgetChatService
                 $conversation->update(['status' => ConversationStatus::Open]);
             }
 
+            $stored = $files === []
+                ? []
+                : $this->attachments->store($files, $visitor->workspace_id, $conversation->id);
+
             $message = $conversation->messages()->create([
                 'sender_type' => MessageSenderType::Visitor,
                 'sender_id' => $visitor->id,
                 'body' => $body,
+                'attachments' => $stored ?: null,
                 'is_private_note' => false,
             ]);
 
@@ -202,12 +247,13 @@ class WidgetChatService
             activity('widget')
                 ->performedOn($message)
                 ->event('created')
-                ->withProperties(['conversation_id' => $conversation->id]) // never log the body
+                ->withProperties(['conversation_id' => $conversation->id, 'attachments' => count($stored)]) // never log the body or file names
                 ->log('Visitor message sent from chat widget');
 
             DB::commit();
         } catch (Throwable $e) {
             DB::rollBack();
+            $this->attachments->discard($stored); // the message was not saved, so its files must not linger
 
             throw $e;
         }
@@ -296,6 +342,22 @@ class WidgetChatService
     // ------------------------------------------------------------------ helpers
 
     /**
+     * Hard block: a visitor may not START a conversation once this month's `conversations` allowance
+     * is used up (no `conversations` key in the plan = unlimited). Must run inside the caller's
+     * transaction: it locks the workspace row so two visitors starting a chat at the same moment
+     * can't both squeeze through the last slot (the observer counts the new conversation before
+     * the lock is released).
+     */
+    private function guardConversationLimit(int $workspaceId): void
+    {
+        $workspace = Workspace::query()->whereKey($workspaceId)->lockForUpdate()->first();
+
+        if ($workspace && ! $this->usage->hasRoom($workspace, 'conversations')) {
+            throw new ConversationLimitReached;
+        }
+    }
+
+    /**
      * Lets Lyro answer the visitor's message AFTER the HTTP response is sent (or on the queue),
      * so a slow AI call never delays the visitor's send. The responder decides whether it may reply.
      */
@@ -367,7 +429,9 @@ class WidgetChatService
             ? (AiAgentSetting::query()->where('workspace_id', $workspaceId)->value('agent_name') ?: 'Assistant')
             : null;
 
-        return $messages->map(function (Message $m) use ($operatorNames, $botName) {
+        $ttl = now()->addMinutes(max(1, (int) config('widget.attachments.url_ttl_minutes', 360)));
+
+        return $messages->map(function (Message $m) use ($operatorNames, $botName, $ttl) {
             $from = match ($m->sender_type) {
                 MessageSenderType::Visitor => 'visitor',
                 MessageSenderType::Operator => 'agent',
@@ -379,6 +443,12 @@ class WidgetChatService
                 'id' => $m->id,
                 'from' => $from,
                 'body' => (string) $m->body,
+                // Signed, expiring links: <img src> can't send the session header, the signature is the proof.
+                'attachments' => $this->attachments->forClient($m->attachments, fn (array $d) => URL::temporarySignedRoute(
+                    'widget.attachments.show',
+                    $ttl,
+                    ['message' => $m->id, 'attachment' => $d['id']],
+                )),
                 // First name only: visitors don't need staff surnames.
                 'name' => match ($from) {
                     'agent' => Str::before((string) ($operatorNames[$m->sender_id] ?? 'Support'), ' '),
